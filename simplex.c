@@ -8,7 +8,7 @@
 CERTIFICATES
 
  - INVALID: Solution of the auxiliar PL's dual(Use add_operations_register in the auxiliar PL 
-   and the corresponding c collumns are going to be the solution and the certificate as well)
+   and the corresponding c columns are going to be the solution and the certificate as well)
 
  - UNBOUNDED: Find vector z such that:
 	
@@ -16,18 +16,7 @@ CERTIFICATES
          - Az = 0
          - cTz > 0
 
- - OPTIMAL: Solution of the dual -> it's in the first row and the collumns correspondent to the operation_register
-*/
-
-/*
-
-- In the beginning God created the heavens and the earth. Then we need to put the LP in Standard Equality Form. 
-
-- First call of solve_lp is ALWAYS to solve an auxiliar LP. The tableau for the auxiliar LP will always be in the final form after that.
-  The optimal value will be the first element of the last collum and the optimal solution for the dual of the auxiliar LP will be the 
-  first m indexes of the first line.
-
-- We need to save the solution of the dual if the LP is unfeasible. Else we extract the base from the vector given
+ - OPTIMAL: Solution of the dual -> it's in the first row and the columns correspondent to the operation_register
 */
 
 /* PROGRAM FLOW *
@@ -37,40 +26,55 @@ CERTIFICATES
  * 3- Create Auxiliar LP
  * 4- Solve Auxiliar LP
  * 5- If Auxiliar LP optimal value is:
- *    5.1- < 0, the LP is unfeasible, so we should save the optimal solution for the dual of the 
- *         auxiliar LP(vector in [0->1][0->m - 2]) which is the unfeasibility certificate
+ *    5.1- < 0, the LP is infeasible, so we should save the optimal solution for the dual of the 
+ *         auxiliar LP(vector in [0->1][0->m - 2]) which is the infeasibility certificate
  *    5.2- = 0, the LP is feasible and so we need to extract the starting base from the resulting vector
  * 6- Now that we have a base to start with, we run the respective simplex. If mode is 1, we run the primal simplex. 
  *    If mode is 2, we run the chosen simplex. 
- *    6.1- Not regarding the chosen mode, we need to check in the simplex if we cannot proceed due to a collumn being 
+ *    6.1- Not regarding the chosen mode, we need to check in the simplex if we cannot proceed due to a column being 
            all negative in the primal simplex or a row being all positive in the dual simplex, the LP is unbounded. Using 
            previously created mechanisms you should be able to create an algorithm that finds the certificate.
    7- If we get to the end of the simplexes(canonical form, c and b >= 0) we can show the optimal solution and its value
-      which is the first element of the last collumn.
+      which is the first element of the last column.
       7.1- If mode equals 1 we need to print the optimal solution for the dual as well
       7.2- If mode equals 2 we need to print the final form of the tableau
  */
 
-// TODO: Function that adds matrix to already created ones(So we can substitute format_sef and add_operations_register for only one function)
+/* TODO: 
+ * - Function that adds matrix to already created ones(So we can substitute format_sef and add_operations_register for only one function)
+ * - Make matrix operations in another module
+ * - Create struct of type matrix with double** matrix, int m, int n
+ */
+
+void parse_input(FILE* input, double** matrix, int m, int n);
 
 double** allocate_matrix(int m, int n);
 double** identity(int m);
 void print_matrix(double** matrix, int m, int n);
 void copy_matrix(double** original, double** copy, int m, int n);
-void insert_matrix(double** source, double** target, int from_row, int to_row, int from_collumn, int to_collumn);
-void operate_on_rows(double** matrix, int m, int n, int multiply_b, int sum_to);
+void insert_matrix(double** source, double** target, int from_row, int to_row, int from_column, int to_column);
+void operate_on_rows(double** matrix, int m, int n, double multiply_by, int sum_to);
 double** format_sef(double** matrix, int m, int n);
+void format_tableau(double** matrix, int m, int n);
 double** add_operations_register(double** matrix, int m, int n);
 double** create_auxiliar_lp(double** matrix, int m, int n);
-void pivoting(double** matrix, int m, int n, int row, int collumn);
+void pivoting(double** matrix, int m, int n, int row, int column);
 void format_canonical(double** matrix, int m, int n, int* base);
-void primal_simplex(double** matrix, int m, int n);
+int find_next_base_primal(double** matrix, int m, int n, int* base_row, int* base_column);
+int primal_simplex(double** matrix, int m, int n, int* base);
 void dual_simplex(double** matrix, int m, int n);
+
+double* get_dual_optimal_solution(double** matrix, int m);
+double* generate_unboundedness_certificate(double** matrix, int m, int n);
+
+void print_output_vector(double* vector, int n);
+void print_output_matrix(double** matrix, int m, int n);
 
 int main(int argc, char* argv[]) {
     double** matrix; // LP
     double** auxiliar_lp; 
     double** tmp;
+	int* base; // Bases are column numbers ordered by rows. If a column contains the base for the first restriction(first row of A), it is going to be on the first index of base and so forth
     int i, j, m, n, auxiliar_n, input_size, mode; // Matrix dimensions  
     char simplex_type; // Primal or Dual Simplex
 
@@ -81,22 +85,127 @@ int main(int argc, char* argv[]) {
     else { // Default input file name
     	input = fopen("input.txt", "r+");
     }
-
     FILE* output = fopen("output.txt", "w+"); // Output file
 
     fscanf(input, "%d %d ", &m, &n);
+    matrix = allocate_matrix(m, n); // Allocate memory for matrix of dimensions m x n
+    parse_input(input, matrix, m, n);
+
+    // Adds the slack variables for the problem, by formating it to the standard equalities form
+    tmp = matrix;
+    matrix = format_sef(matrix, m, n);
+    free(tmp);
+    n += m - 1;
+
+    format_tableau(matrix, m, n);
+
+    printf("Standard Equality Form + Tableau:\n");
+    print_matrix(matrix, m, n);
+
+   	// Now add the register of operations
+   	tmp = matrix; // Holds the position in the memory pointed by auxiliar_lp so we can free it later
+	matrix = add_operations_register(matrix, m, n);
+	free(tmp); // Finally frees it
+	n += m - 1; // Sums the new rows added in the previous operation to the total number of rows
+
+	printf("Operations Register:\n");
+    print_matrix(matrix, m, n);
+
+   	auxiliar_lp = create_auxiliar_lp(matrix, m, n);
+    auxiliar_n = n + m - 1; // Value of n for the auxiliar PL with the operation register matrix on its side
+
+    printf("Auxiliar:\n");
+    print_matrix(auxiliar_lp, m, auxiliar_n);
+
+    base = malloc((m - 1) * sizeof(int));
+    j = (auxiliar_n - 1 - (m - 1));
+    printf("Auxiliar Base:\n");
+    for(i = 0; i < (m - 1); i++) {
+    	base[i] = j;
+    	j++;
+    	printf("%d ", base[i]);
+    }
+    printf("\n\n");
+
+/*    format_canonical(auxiliar_lp, m, auxiliar_n, base);
+    printf("Canonical LP:\n");
+    print_matrix(auxiliar_lp, m, auxiliar_n);
+*/
+
+	primal_simplex(auxiliar_lp, m, auxiliar_n, base);
+	printf("Optimal Auxiliar LP:\n");
+	print_matrix(auxiliar_lp, m, auxiliar_n);
+
+	// User chooses the modus operandi
+    printf("Escolha o modo de saída: ");
+    scanf(" %d", &mode);
+//    mode = 1;
+//    printf("1\n\n");
+
+    switch(mode) {
+	    case 1:
+
+	    if(auxiliar_lp[0][n - 1] < 0) { // LP is infeasible
+	    	printf("PL inviável, aqui está um certificado ");
+	    	// The optimal solution for the dual of the auxiliar LP is a certificate of infeasibility for the original.
+	    	print_output_vector(get_dual_optimal_solution(auxiliar_lp, m), m - 2);
+	    	printf("\n");
+	    }
+	    else {
+
+	    }
+
+	    break;
+
+	    case 2:
+	    	printf("Você gostaria de resolver pelo simplex (P)rimal ou (D)ual? ");
+	    	scanf(" %c", &simplex_type);
+
+	    	switch(simplex_type) {
+	    		case 'P':
+
+	    		// The base now is the final base of the auxiliar LP, which is a good one to begin the simplex with
+	    		primal_simplex(matrix, m, n, base);
+
+	    		printf("Optimal LP:\n");
+				print_matrix(matrix, m, n);
+
+				print_output_matrix(matrix, m, n);
+
+	    		break;
+
+	    		case 'D':
+	    		printf("D.");
+	    		break;
+
+	    		default:
+				printf("Erro: Opção Inválida.\n");
+	    	}
+	    break;
+
+		default:
+		printf("Erro: Opção Inválida.\n");
+	}
+
+	fclose(input);
+	fclose(output);
+
+/*	
+	free(you);
+	free(tu);
+	free(a porra toda);
+*/
+    return 0;
+}
+
+void parse_input(FILE* input, double** matrix, int m, int n) {
+	int i, j, input_size;
 
     input_size = (2 + (4 * m) + (m * (3 * n))); // Approximated size of input
     char* input_matrix = malloc(input_size * sizeof(char)); // Unformated LP
     fgets(input_matrix, input_size, input); 
 
     char* row = strtok(input_matrix, "{"); // Parsed first row
-
-    // Allocate memory for matrix of dimensions m x n
-    matrix = allocate_matrix(m, n);
-
-    i = 0;
-    j = 0;
 
     // Parsing of rows to get elements and fill matrix
     while(row != NULL) { 
@@ -118,79 +227,7 @@ int main(int argc, char* argv[]) {
     	i++;
     	j = 0;
     }
-
-    // User chooses the modus operandi
-    printf("Escolha o modo de saída: ");
-    //scanf(" %d", &mode);
-    mode = 1;
-    printf("1\n");
-
-    // Adds the slack variables for the problem, by formating it to the standard equalities form
-    tmp = matrix;
-    matrix = format_sef(matrix, m, n);
-    free(tmp);
-    n += m - 1;
-
-    printf("Standard Equality Form:\n");
-    print_matrix(matrix, m, n);
-
-   	// Now add the register of operations
-   	tmp = matrix; // Holds the position in the memory pointed by auxiliar_lp so we can free it later
-	matrix = add_operations_register(matrix, m, n);
-	free(tmp); // Finally frees it
-	n += m - 1; // Sums the new rows added in the previous operation to the total number of rows
-
-	printf("Operations Register:\n");
-    print_matrix(matrix, m, n);
-
-    switch(mode) {
-	    case 1:
-	    auxiliar_lp = create_auxiliar_lp(matrix, m, n);
-
-	    auxiliar_n = n + m - 1; // Value of n for the auxiliar PL with the operation register matrix on its side
-
-
-
-	    break;
-
-	    case 2:
-	    	printf("Você gostaria de resolver pelo simplex (P)rimal ou (D)ual? ");
-	    	scanf(" %c", &simplex_type);
-
-	    	switch(simplex_type) {
-	    		case 'P':
-	    		printf("P.");
-	    		break;
-
-	    		case 'D':
-	    		printf("D.");
-	    		break;
-
-	    		default:
-				printf("Erro: Opção Inválida.\n");
-	    	}
-	    break;
-
-		default:
-		printf("Erro: Opção Inválida.\n");
-	}
-
-    for(i = 0; i < m; i++) { // Prints output matrix in file
-		for(j = 0; j < n; j++) {
-		    fprintf(output, "%g ", matrix[i][j]);
-		}
-		fprintf(output, "\n");
-	}
-
-	fclose(input);
-	fclose(output);
-
-/*	
-	free(you);
-	free(tu);
-	free(a porra toda);
-*/
-    return 0;
+    printf("\n");
 }
 
 // Allocate matrix of dimensions m x n in the pointer of pointers **matrix.
@@ -231,10 +268,16 @@ void print_matrix(double** matrix, int m, int n) {
 
 	for(i = 0; i < m; i++) {
 		for(j = 0; j < n; j++) {
-			printf("%g ", matrix[i][j]);
+			if(matrix[i][j] < 0 || matrix[i][j] > 9) {
+				printf("%g ", round(matrix[i][j] * 100000) / 100000);
+			}
+			else {
+				printf(" %g ", round(matrix[i][j] * 100000) / 100000);
+			}
 		}
 		printf("\n");
 	}
+	printf("\n");
 }
 
 // Copy the value of every element in the original matrix to the new one.
@@ -250,14 +293,14 @@ void copy_matrix(double** original, double** copy, int m, int n) {
 
 /* Insert source matrix inside target matrix in the submatrix comprehended by the integer offsets(from_row, to_row, etc). 
  * The dimensions must match. The received indexes start at 1 so we convert them. */
-void insert_matrix(double** source, double** target, int from_row, int to_row, int from_collumn, int to_collumn) {
+void insert_matrix(double** source, double** target, int from_row, int to_row, int from_column, int to_column) {
 	int i, j, m, n;
 
 	m = 0;
 	n = 0;
 
 	for(i = (from_row - 1); i < to_row; i++) {
-		for(j = (from_collumn - 1); j < to_collumn; j++) {
+		for(j = (from_column - 1); j < to_column; j++) {
 //			printf("Source: [%d][%d] Target: [%d][%d] Value: %f\n", m, n, i, j, source[m][n]);
 			target[i][j] = source[m][n];
 			n++;
@@ -268,29 +311,33 @@ void insert_matrix(double** source, double** target, int from_row, int to_row, i
 //	printf("END\n");
 }
 
-/* Offers a way to make linear operations. If sum_to is NULL, replaces the actual line. m stands for the row 
- * to operate on and n stands for the dimension of collumns. The index for sum_to begins at 0 */
-void operate_on_rows(double** matrix, int m, int n, int multiply_by, int sum_to) {
-	int* new_row;
+/* Offers a way to make linear operations. If sum_to is -1, replaces the actual line. m stands for the row 
+ * to operate on and n stands for the dimension of columns. The index for sum_to begins at 0 */
+void operate_on_rows(double** matrix, int m, int n, double multiply_by, int sum_to) {
+	double* new_row;
 	int j;
 
-	new_row = malloc(n * sizeof(int)); 
+	new_row = malloc(n * sizeof(double)); 
 
+	printf("Multiply row %d by %g and sum to row %d\n", m, multiply_by, sum_to);
+
+//	printf("The new row is:\n");
 	for(j = 0; j < n; j++) {
-		new_row[j] = matrix[m][j] * multiply_by;
+		if(matrix[m][j] != 0) {
+			new_row[j] = matrix[m][j] * multiply_by;
+//			printf("%lf ", matrix[m][j]);
+		}
 	}
+//	printf("\n\n");
 
-	if(sum_to == (int)NULL) {
-		printf("É nulo\n");
+	if(sum_to == -1) {
 		for(j = 0; j < n; j++) {
 			matrix[m][j] = new_row[j]; // TODO - Check if matrix[m] = new_row, or its variants, works
-			printf("%d ", new_row[j]);
 		}	
-		printf("\n");
 	}
 	else {
 		for(j = 0; j < n; j++) {
-			matrix[sum_to][j] = new_row[j]; // TODO - Check if matrix[m] = new_row, or its variants, works
+			matrix[sum_to][j] += new_row[j]; // TODO - Check if matrix[m] = new_row, or its variants, works
 		}	
 	}
 }
@@ -298,25 +345,25 @@ void operate_on_rows(double** matrix, int m, int n, int multiply_by, int sum_to)
 // Format the LP to the Standard Equality Form
 double** format_sef(double** original_matrix, int m, int n) {
 	double** new_matrix;
-	int i, j, new_collumns, new_n;
+	int i, j, new_columns, new_n;
 	
-	new_collumns = m - 1;
-	new_n = n + new_collumns;
+	new_columns = m - 1;
+	new_n = n + new_columns;
 
-	new_matrix = allocate_matrix(m, (n + new_collumns));
+	new_matrix = allocate_matrix(m, (n + new_columns));
 
 	// Set the values in the submatrix that will register the operations
-	for(j = 0; j < new_collumns; j++) {
+	for(j = 0; j < new_columns; j++) {
 		new_matrix[0][j] = 0; // Set c row to 0
 	}
 
-	// Insert the original matrix in the beginning of the new one without the last collumn
+	// Insert the original matrix in the beginning of the new one without the last column
 	insert_matrix(original_matrix, new_matrix, 1, m, 1, (n - 1));
 
 	// Adds the identity matrix in the correct position
-	insert_matrix(identity(new_collumns), new_matrix, 2, m, n, (n + new_collumns)); 
+	insert_matrix(identity(new_columns), new_matrix, 2, m, n, (n + new_columns)); 
 
-	// Adds the last collumn of the original LP to the new one
+	// Adds the last column of the original LP to the new one
 	for(i = 0; i < m; i++) {
 		new_matrix[i][new_n - 1] = original_matrix[i][n - 1];
 	}
@@ -324,25 +371,33 @@ double** format_sef(double** original_matrix, int m, int n) {
 	return new_matrix;
 }
 
-
+// Negates the entries in c for the tableau
+void format_tableau(double** matrix, int m, int n) {
+	int i;
+	for(i = 0; i < n; i++) {
+		if(matrix[0][i] != 0) {
+			matrix[0][i] = matrix[0][i] * -1;
+		}
+	}
+}
 
 // Create a new matrix that consists of the operation register submatrix added to the original one.
 double** add_operations_register(double** original_matrix, int m, int n) {
 	double** new_matrix;
-	int i, j, new_collumns;
+	int i, j, new_columns;
 
-	new_collumns = m - 1; // Number of rows added
+	new_columns = m - 1; // Number of rows added
 
-	new_matrix = allocate_matrix(m, (n + new_collumns));
+	new_matrix = allocate_matrix(m, (n + new_columns));
 
 	// Set the values in the submatrix that will register the operations
-	for(j = 0; j < new_collumns; j++) {
+	for(j = 0; j < new_columns; j++) {
 		new_matrix[0][j] = 0; // Set c row to 0
 	}
-	insert_matrix(identity(new_collumns), new_matrix, 2, m, 1, new_collumns); // Adds the identity matrix in the correct position
+	insert_matrix(identity(new_columns), new_matrix, 2, m, 1, new_columns); // Adds the identity matrix in the correct position
 
 	// Insert the original matrix as a submatrix of the new one
-	insert_matrix(original_matrix, new_matrix, 1, m, m, (n + new_collumns));
+	insert_matrix(original_matrix, new_matrix, 1, m, m, (n + new_columns));
 
 	return new_matrix;
 }
@@ -360,15 +415,15 @@ double** create_auxiliar_lp(double** matrix, int m, int n) {
 
 	// First check if b > 0
 	for(i = 1; i < m; i++) {
-		if(copied_matrix[i][(n - 1)] < 0) {
-			operate_on_rows(copied_matrix, m, n, -1, (int)NULL);
+		if(copied_matrix[i][n - 1] < 0) {
+			operate_on_rows(copied_matrix, i, n, -1, -1);
 		}
 	}
 	
-	// Fulfill the auxiliar lp without the last collumn(thats why to_collumn equals n - 2)
+	// Fulfill the auxiliar lp without the last column(thats why to_column equals n - 2)
 	insert_matrix(copied_matrix, auxiliar_lp, 1, m, 1, (n - 1));	
 
-	// Adds the last collumn to the auxiliar lp
+	// Adds the last column to the auxiliar lp
 	for(i = 0; i < m; i++) {
 		auxiliar_lp[i][auxiliar_n - 1] = copied_matrix[i][n - 1];
 	}
@@ -376,7 +431,7 @@ double** create_auxiliar_lp(double** matrix, int m, int n) {
 	// Creates the first row of the auxiliar LP in the correct form
 	for(j = 0; j < auxiliar_n; j++) { 
 		if(j >= (auxiliar_n - m) && j < (auxiliar_n - 1)) {
-			auxiliar_lp[0][j] = -1;
+			auxiliar_lp[0][j] = 1;
 		} 
 		else {
 			auxiliar_lp[0][j] = 0; 
@@ -385,34 +440,152 @@ double** create_auxiliar_lp(double** matrix, int m, int n) {
 
 	insert_matrix(identity(m - 1), auxiliar_lp, 2, m, (auxiliar_n - m + 1), (auxiliar_n - 1)); // Adds the identity matrix in the correct position
 
-	printf("Auxiliar LP:\n");
+	/*
 	for(i = 0; i < m; i++) {
 		for(j = 0; j < auxiliar_n; j++) {
 			printf("%g ", round(auxiliar_lp[i][j] * 100000) / 100000);
 		}
 		printf("\n");
-	}
+	}*/
+
+
 
 	return auxiliar_lp;
 }
 
 // Format the LP to the Canonical Form
 void format_canonical(double** matrix, int m, int n, int* base) {
+	/* Function flow *
+	 * - Check if matrix[i + 1][base[i]] == 1
+	 *   - If not, make it be(operate_on_rows)
+	 * - Check if all the other rows for this collumn are 0
+	 *   - If not, make it be
+	 */
+	int i, j;
 
+	for(i = 0; i < (m - 1); i++) { // Goes through all the basic columns
+		if(matrix[i + 1][base[i]] != 1) { 
+			operate_on_rows(matrix, i + 1, n, 1 / matrix[i + 1][base[i]], -1);
+		}
+		for(j = 0; j < m; j++) {
+			if(j != (i + 1)) {
+				if(matrix[j][base[i]] != 0) {
+					operate_on_rows(matrix, i + 1, n, (-1 * (matrix[j][base[i]] / matrix[i + 1][base[i]])), j);
+				}
+			} 
+		}
+	}
 }
 
-// If we cant generalize this procedure for auxiliar and normal LP's, we should separate this into two different functions
-void primal_simplex(double** matrix, int m, int n) {	
-	int* base; // Current base used in simplex
-	int i;
+// Needs to return the column, the row and the base that is leaving
+int find_next_base_primal(double** matrix, int m, int n, int* base_row, int* base_column) {
+	int i, j, min_ratio, row_ratio;
 
-	base = malloc((m - 1) * sizeof(int));
+	min_ratio = 999999;
 
-	for(i = 0; i < (m - 1); i++) {
-		base[i] = n - m - 1 - 1;
+	for(j = (m - 1); j < (n - 1); j++) {
+		if(matrix[0][j] < 0) {
+			*base_column = j;
+			for(i = 1; i < m; i++) {
+				if(matrix[i][j] != 0) {
+					row_ratio = matrix[i][n - 1] / matrix[i][j];
+					printf("Ratio of row %d and column %d is %d\n\n", i, j, row_ratio);
+					if(row_ratio < min_ratio) {
+						min_ratio = row_ratio;
+						*base_row = i;
+					}
+				}
+			}
+			if(min_ratio == 999999) {
+				return 2; // LP is unbounded
+			}
+			else {
+				return 0; // Goes to the next round of simplex
+			}
+		}
 	}
 
-	// First we need to present the LP in the canonical form
-	format_canonical(matrix, m, n, base);
+	return 1; // LP is optimal
+}
 
+// TODO - Before starting, check if b > 0. Do this for the original LP before creating the auxiliar one
+// If we cant generalize this procedure for auxiliar and normal LP's, we should separate this into two different functions
+int primal_simplex(double** matrix, int m, int n, int* base) {	
+	int i, state, new_base_row, new_base_column;
+
+	while(1) {
+		new_base_row = 0;
+		new_base_column = 0;
+
+		printf("Current bases\n");
+		for(i = 0; i < m - 1; i ++) {
+			printf("%d ", base[i]);
+		}
+		printf("\n\n");
+
+		// First we need to present the LP in the canonical form
+		format_canonical(matrix, m, n, base);
+
+		// Find the next base for the primal simplex
+		state = find_next_base_primal(matrix, m, n, &new_base_row, &new_base_column);
+
+		if(state > 0) {
+			printf("State %d\n\n", state);
+			return state;
+		}
+
+		printf("The new base is column %d and row %d\n\n", new_base_column, new_base_row);
+
+		base[new_base_row - 1] = new_base_column;
+
+		print_matrix(matrix, m, n);
+//		printf("Press enter to continue...\n");
+//		getchar();
+	}
+}
+
+// Generate both infeasibility and optimality certificates
+double* get_dual_optimal_solution(double** matrix, int m) {
+	double* vector;
+	int i;
+
+	vector = malloc((m - 1) * sizeof(double));
+	for(i = 0; i < (m - 1); i++) {
+		vector[i] = matrix[0][i];
+	}
+
+	return vector;
+}
+
+
+double* generate_unboundedness_certificate(double** matrix, int m, int n) {
+	double* vector;
+	return vector;
+}
+
+// TODO - Change this to fprintf
+void print_output_vector(double* vector, int n) {
+	int i;
+
+	printf("{");
+	for(i = 0; i < n; i++) {
+		printf("%g", round(vector[i] * 100000) / 100000);
+		if(i != (n - 1)) {
+			printf(", ");
+		}
+	}
+	printf("}");
+}
+
+void print_output_matrix(double** matrix, int m, int n) {
+	int i;
+
+	printf("{");
+	for(i = 0; i < m; i++) {
+		print_output_vector(matrix[i], n);
+		if(i != (m - 1)) {
+			printf(", ");
+		}
+	}
+	printf("}\n");
 }
