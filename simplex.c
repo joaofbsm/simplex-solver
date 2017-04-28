@@ -41,9 +41,17 @@ CERTIFICATES
  */
 
 /* TODO: 
- * - Function that adds matrix to already created ones(So we can substitute format_sef and add_operations_register for only one function)
+ * - Function that adds matrix to already created ones(So we can substitute format_sef and add_operations_register with only one function)
  * - Make matrix operations in another module
- * - Create struct of type matrix with double** matrix, int m, int n
+ * - Create struct of type LP with double** matrix, int m, int n, int type(-1 infeasible, 0 optimal, 1 unbounded)
+ * - Maybe in the future the output file will not be used
+ * - Refactor code optimizing it and renaming variables and functions
+ * - Make simplex receive a parameter that sets if output is going to be printed
+ * - Solve -0 being printed
+ */
+
+/* PROBLEMS 
+ * - Once again, when should we use an auxiliar LP in the second mode?
  */
 
 void parse_input(FILE* input, double** matrix, int m, int n);
@@ -57,15 +65,17 @@ void operate_on_rows(double** matrix, int m, int n, double multiply_by, int sum_
 double** format_sef(double** matrix, int m, int n);
 void format_tableau(double** matrix, int m, int n);
 double** add_operations_register(double** matrix, int m, int n);
+void make_b_non_negative(double** matrix, int m, int n);
 double** create_auxiliar_lp(double** matrix, int m, int n);
-void pivoting(double** matrix, int m, int n, int row, int column);
+void set_initial_base(double** matrix, int m, int n, int* base);
 void format_canonical(double** matrix, int m, int n, int* base);
 int find_next_base_primal(double** matrix, int m, int n, int* base_row, int* base_column);
-int primal_simplex(double** matrix, int m, int n, int* base);
+int primal_simplex(double** matrix, int m, int n, int* base, int print_output);
 void dual_simplex(double** matrix, int m, int n);
 
+double* get_primal_optimal_solution(double** matrix, int m, int n, int* base);
 double* get_dual_optimal_solution(double** matrix, int m);
-double* generate_unboundedness_certificate(double** matrix, int m, int n);
+double* generate_unboundedness_certificate(double** matrix, int m, int n, int column, int* base);
 
 void print_output_vector(double* vector, int n);
 void print_output_matrix(double** matrix, int m, int n);
@@ -75,7 +85,7 @@ int main(int argc, char* argv[]) {
     double** auxiliar_lp; 
     double** tmp;
 	int* base; // Bases are column numbers ordered by rows. If a column contains the base for the first restriction(first row of A), it is going to be on the first index of base and so forth
-    int i, j, m, n, auxiliar_n, input_size, mode; // Matrix dimensions  
+    int i, m, n, b, auxiliar_n, input_size, mode, result; // Matrix dimensions  
     char simplex_type; // Primal or Dual Simplex
 
     FILE* input; // Input file
@@ -91,16 +101,16 @@ int main(int argc, char* argv[]) {
     matrix = allocate_matrix(m, n); // Allocate memory for matrix of dimensions m x n
     parse_input(input, matrix, m, n);
 
-    // Adds the slack variables for the problem, by formating it to the standard equalities form
-    tmp = matrix;
+    // Adds the slack variables for the problem, by formating it to the standard equalities form   
+	tmp = matrix;
     matrix = format_sef(matrix, m, n);
     free(tmp);
     n += m - 1;
 
     format_tableau(matrix, m, n);
 
-    printf("Standard Equality Form + Tableau:\n");
-    print_matrix(matrix, m, n);
+//    printf("Standard Equality Form + Tableau(n = %d):\n", n);
+//    print_matrix(matrix, m, n);
 
    	// Now add the register of operations
    	tmp = matrix; // Holds the position in the memory pointed by auxiliar_lp so we can free it later
@@ -108,33 +118,8 @@ int main(int argc, char* argv[]) {
 	free(tmp); // Finally frees it
 	n += m - 1; // Sums the new rows added in the previous operation to the total number of rows
 
-	printf("Operations Register:\n");
-    print_matrix(matrix, m, n);
-
-   	auxiliar_lp = create_auxiliar_lp(matrix, m, n);
-    auxiliar_n = n + m - 1; // Value of n for the auxiliar PL with the operation register matrix on its side
-
-    printf("Auxiliar:\n");
-    print_matrix(auxiliar_lp, m, auxiliar_n);
-
-    base = malloc((m - 1) * sizeof(int));
-    j = (auxiliar_n - 1 - (m - 1));
-    printf("Auxiliar Base:\n");
-    for(i = 0; i < (m - 1); i++) {
-    	base[i] = j;
-    	j++;
-    	printf("%d ", base[i]);
-    }
-    printf("\n\n");
-
-/*    format_canonical(auxiliar_lp, m, auxiliar_n, base);
-    printf("Canonical LP:\n");
-    print_matrix(auxiliar_lp, m, auxiliar_n);
-*/
-
-	primal_simplex(auxiliar_lp, m, auxiliar_n, base);
-	printf("Optimal Auxiliar LP:\n");
-	print_matrix(auxiliar_lp, m, auxiliar_n);
+//	printf("Operations Register(n = %d):\n", n);
+//    print_matrix(matrix, m, n);
 
 	// User chooses the modus operandi
     printf("Escolha o modo de saída: ");
@@ -142,17 +127,50 @@ int main(int argc, char* argv[]) {
 //    mode = 1;
 //    printf("1\n\n");
 
+    base = malloc((m - 1) * sizeof(int));
+
     switch(mode) {
 	    case 1:
 
-	    if(auxiliar_lp[0][n - 1] < 0) { // LP is infeasible
+	    auxiliar_lp = create_auxiliar_lp(matrix, m, n);
+	    auxiliar_n = n + m - 1; // Value of n for the auxiliar PL with the operation register matrix on its side
+
+//	    printf("\nAuxiliar(auxiliar_n = %d):\n", auxiliar_n);
+//	    print_matrix(auxiliar_lp, m, auxiliar_n);
+
+	    // Set the initial base for the auxiliar LP. j is the first row for the inserted columns
+	    set_initial_base(auxiliar_lp, m, auxiliar_n, base);
+//	    printf("Auxiliar Base:\n");
+//	    for(i = 0; i < (m - 1); i++) {
+//	    	printf("%d ", base[i]);
+//	    }
+//	    printf("\n\n");
+
+	    // The base now is the final base of the auxiliar LP, which is a good one to begin the simplex with
+		primal_simplex(auxiliar_lp, m, auxiliar_n, base, 0);
+//		printf("Optimal Auxiliar LP:\n");
+//		print_matrix(auxiliar_lp, m, auxiliar_n);
+
+	    if(auxiliar_lp[0][auxiliar_n - 1] < 0) { // LP is infeasible
 	    	printf("PL inviável, aqui está um certificado ");
 	    	// The optimal solution for the dual of the auxiliar LP is a certificate of infeasibility for the original.
-	    	print_output_vector(get_dual_optimal_solution(auxiliar_lp, m), m - 2);
+	    	print_output_vector(get_dual_optimal_solution(auxiliar_lp, m), m - 1);
 	    	printf("\n");
 	    }
 	    else {
-
+	    	result = primal_simplex(matrix, m, n, base, 0);
+	    	if(result > 0) { // LP is unbounded
+	    		printf("PL ilimitada, aqui está um certificado ");
+	    		print_output_vector(generate_unboundedness_certificate(matrix, m, n, result, base), (n - 1 - (m - 1) - (m - 1)));
+	    		printf("\n");
+	    	} 
+	    	else { // LP is optimal
+	    		printf("Solução ótima x = ");
+	    		print_output_vector(get_primal_optimal_solution(matrix, m, n, base), (n - 1 - (m - 1) - (m - 1)));
+	    		printf(", com valor objetivo %g, e solução dual y = ", round(matrix[0][n - 1] * 100000) / 100000);
+	    		print_output_vector(get_dual_optimal_solution(matrix, m), m - 1);
+	    		printf("\n");
+	    	}
 	    }
 
 	    break;
@@ -164,13 +182,13 @@ int main(int argc, char* argv[]) {
 	    	switch(simplex_type) {
 	    		case 'P':
 
-	    		// The base now is the final base of the auxiliar LP, which is a good one to begin the simplex with
-	    		primal_simplex(matrix, m, n, base);
+	    		// Set bases to the slack variables
+			    set_initial_base(matrix, m, n, base);
 
-	    		printf("Optimal LP:\n");
-				print_matrix(matrix, m, n);
+	    		result = primal_simplex(matrix, m, n, base, 1);
 
-				print_output_matrix(matrix, m, n);
+//	    		printf("Optimal LP:\n");
+//				print_matrix(matrix, m, n);
 
 	    		break;
 
@@ -319,7 +337,7 @@ void operate_on_rows(double** matrix, int m, int n, double multiply_by, int sum_
 
 	new_row = malloc(n * sizeof(double)); 
 
-	printf("Multiply row %d by %g and sum to row %d\n", m, multiply_by, sum_to);
+//	printf("Multiply row %d by %g and sum to row %d\n", m, multiply_by, sum_to);
 
 //	printf("The new row is:\n");
 	for(j = 0; j < n; j++) {
@@ -402,6 +420,17 @@ double** add_operations_register(double** original_matrix, int m, int n) {
 	return new_matrix;
 }
 
+void make_b_non_negative(double** matrix, int m, int n) {
+	int i;
+
+	// First check if b > 0
+	for(i = 1; i < m; i++) {
+		if(matrix[i][n - 1] < 0) {
+			operate_on_rows(matrix, i, n, -1, -1);
+		}
+	}
+}
+
 double** create_auxiliar_lp(double** matrix, int m, int n) {
 	double** auxiliar_lp;
 	double** copied_matrix;
@@ -413,12 +442,7 @@ double** create_auxiliar_lp(double** matrix, int m, int n) {
 	copied_matrix = allocate_matrix(m, n); 
 	copy_matrix(matrix, copied_matrix, m, n); // Holds the values of the original matrix but doesn't mess with the original data in any sense
 
-	// First check if b > 0
-	for(i = 1; i < m; i++) {
-		if(copied_matrix[i][n - 1] < 0) {
-			operate_on_rows(copied_matrix, i, n, -1, -1);
-		}
-	}
+	make_b_non_negative(copied_matrix, m, n);
 	
 	// Fulfill the auxiliar lp without the last column(thats why to_column equals n - 2)
 	insert_matrix(copied_matrix, auxiliar_lp, 1, m, 1, (n - 1));	
@@ -453,6 +477,15 @@ double** create_auxiliar_lp(double** matrix, int m, int n) {
 	return auxiliar_lp;
 }
 
+void set_initial_base(double** matrix, int m, int n, int* base) {
+	int b, i;
+	b = (n - 1 - (m - 1));
+    for(i = 0; i < (m - 1); i++) {
+    	base[i] = b;
+    	b++;
+    }
+}
+
 // Format the LP to the Canonical Form
 void format_canonical(double** matrix, int m, int n, int* base) {
 	/* Function flow *
@@ -465,12 +498,12 @@ void format_canonical(double** matrix, int m, int n, int* base) {
 
 	for(i = 0; i < (m - 1); i++) { // Goes through all the basic columns
 		if(matrix[i + 1][base[i]] != 1) { 
-			operate_on_rows(matrix, i + 1, n, 1 / matrix[i + 1][base[i]], -1);
+			operate_on_rows(matrix, (i + 1), n, (1 / matrix[i + 1][base[i]]), -1);
 		}
 		for(j = 0; j < m; j++) {
 			if(j != (i + 1)) {
 				if(matrix[j][base[i]] != 0) {
-					operate_on_rows(matrix, i + 1, n, (-1 * (matrix[j][base[i]] / matrix[i + 1][base[i]])), j);
+					operate_on_rows(matrix, (i + 1), n, (-1 * (matrix[j][base[i]] / matrix[i + 1][base[i]])), j);
 				}
 			} 
 		}
@@ -479,25 +512,29 @@ void format_canonical(double** matrix, int m, int n, int* base) {
 
 // Needs to return the column, the row and the base that is leaving
 int find_next_base_primal(double** matrix, int m, int n, int* base_row, int* base_column) {
-	int i, j, min_ratio, row_ratio;
+	int i, j;
+	double min_ratio, row_ratio;
 
 	min_ratio = 999999;
+
+//	printf("\n");
 
 	for(j = (m - 1); j < (n - 1); j++) {
 		if(matrix[0][j] < 0) {
 			*base_column = j;
+//			printf("Chosen column to enter the base was %d\n", j);
 			for(i = 1; i < m; i++) {
 				if(matrix[i][j] != 0) {
 					row_ratio = matrix[i][n - 1] / matrix[i][j];
-					printf("Ratio of row %d and column %d is %d\n\n", i, j, row_ratio);
-					if(row_ratio < min_ratio) {
+//					printf("Ratio of row %d and column %d is %g\n", i, j, row_ratio);
+					if(row_ratio >= 0 && row_ratio < min_ratio) {
 						min_ratio = row_ratio;
 						*base_row = i;
 					}
 				}
 			}
 			if(min_ratio == 999999) {
-				return 2; // LP is unbounded
+				return j; // LP is unbounded
 			}
 			else {
 				return 0; // Goes to the next round of simplex
@@ -505,43 +542,76 @@ int find_next_base_primal(double** matrix, int m, int n, int* base_row, int* bas
 		}
 	}
 
-	return 1; // LP is optimal
+	return -1; // LP is optimal
 }
 
-// TODO - Before starting, check if b > 0. Do this for the original LP before creating the auxiliar one
-// If we cant generalize this procedure for auxiliar and normal LP's, we should separate this into two different functions
-int primal_simplex(double** matrix, int m, int n, int* base) {	
-	int i, state, new_base_row, new_base_column;
+/* TODO - Before starting, check if b > 0. Do this for the original LP before creating the auxiliar one
+ * If return = -1 the LP is optimal and if return > 0 it's unbounded and the return value = the column where we can get the certificate
+ */
+int primal_simplex(double** matrix, int m, int n, int* base, int print_output) {	
+	int i, result, new_base_row, new_base_column;
+
+	make_b_non_negative(matrix, m, n);
+
+//	printf("____________________________________________________\n\n");
+
+//	print_matrix(matrix, m, n);
 
 	while(1) {
+
 		new_base_row = 0;
 		new_base_column = 0;
 
-		printf("Current bases\n");
-		for(i = 0; i < m - 1; i ++) {
-			printf("%d ", base[i]);
-		}
-		printf("\n\n");
+//		printf("Current bases\n");
+//		for(i = 0; i < (m - 1); i++) {
+//			printf("%d ", base[i]);
+//		}
+//		printf("\n\n");
 
 		// First we need to present the LP in the canonical form
 		format_canonical(matrix, m, n, base);
 
 		// Find the next base for the primal simplex
-		state = find_next_base_primal(matrix, m, n, &new_base_row, &new_base_column);
+		result = find_next_base_primal(matrix, m, n, &new_base_row, &new_base_column);
+		
+//		printf("\n");
 
-		if(state > 0) {
-			printf("State %d\n\n", state);
-			return state;
+//		print_matrix(matrix, m, n);
+
+		if(print_output) {
+			print_output_matrix(matrix, m, n);
 		}
 
-		printf("The new base is column %d and row %d\n\n", new_base_column, new_base_row);
+		if(result != 0) {
+//			printf("Result %d\n\n", result);
+			return result;
+		}
+
+//		printf("The new base is column %d and row %d\n\n", new_base_column, new_base_row);
 
 		base[new_base_row - 1] = new_base_column;
 
-		print_matrix(matrix, m, n);
-//		printf("Press enter to continue...\n");
+//		printf("____________________________________________________\n");
 //		getchar();
 	}
+}
+
+double* get_primal_optimal_solution(double** matrix, int m, int n, int* base) {
+	double* vector;
+	int i;
+
+	vector = malloc((n - 1 - (m - 1)) * sizeof(double));
+
+	for(i = 0; i < (n - 1 - (m - 1)); i++) {
+		vector[i] = 0;
+	}
+
+	// Assigns the value of b to the columns in the solution that correspond to the columns in the base
+	for(i = 0; i < (m - 1); i++) {
+		vector[base[i] - (m - 1)]  = matrix[i + 1][n - 1];
+	}
+
+	return vector;
 }
 
 // Generate both infeasibility and optimality certificates
@@ -550,6 +620,7 @@ double* get_dual_optimal_solution(double** matrix, int m) {
 	int i;
 
 	vector = malloc((m - 1) * sizeof(double));
+
 	for(i = 0; i < (m - 1); i++) {
 		vector[i] = matrix[0][i];
 	}
@@ -557,9 +628,26 @@ double* get_dual_optimal_solution(double** matrix, int m) {
 	return vector;
 }
 
-
-double* generate_unboundedness_certificate(double** matrix, int m, int n) {
+double* generate_unboundedness_certificate(double** matrix, int m, int n, int column, int* base) {
 	double* vector;
+	int i;
+
+	vector = malloc((n - 1 - (m - 1)) * sizeof(double));
+
+	for(i = 0; i < (n - 1 - (m - 1)); i++) {
+		vector[i] = 0;
+	}
+
+	// Assigns the value of b to the columns in the solution that correspond to the columns in the base
+	for(i = 0; i < (m - 1); i++) {
+		if(matrix[i + 1][column] != 0) {
+			vector[base[i] - (m - 1)] = -1 * matrix[i + 1][column];
+		}
+	}
+
+	// Column that shows unboundedness will be 1 to make it easier to create the rest of the certificate
+	vector[column - (m - 1)] = 1;
+
 	return vector;
 }
 

@@ -1,2 +1,2 @@
 # Simplex-Solver
-Simplex Solver in C - UFMG Linear Optmization Assignment
+Simplex Solver in C - UFMG Linear Optimization Assignment
