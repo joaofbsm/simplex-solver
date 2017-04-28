@@ -70,9 +70,10 @@ void make_b_non_negative(double** matrix, int m, int n);
 double** create_auxiliar_lp(double** matrix, int m, int n);
 void set_initial_base(double** matrix, int m, int n, int* base);
 void format_canonical(double** matrix, int m, int n, int* base);
-int find_next_base_primal(double** matrix, int m, int n, int* base_row, int* base_column);
+int primal_next_base(double** matrix, int m, int n, int* base_row, int* base_column);
 int primal_simplex(double** matrix, int m, int n, int* base, int print_output);
-void dual_simplex(double** matrix, int m, int n);
+int dual_next_base(double** matrix, int m, int n, int* base_row, int* base_column);
+int dual_simplex(double** matrix, int m, int n, int* base, int print_output);
 
 double* get_primal_optimal_solution(double** matrix, int m, int n, int* base);
 double* get_dual_optimal_solution(double** matrix, int m);
@@ -152,8 +153,7 @@ int main(int argc, char* argv[]) {
 		printf("Optimal Auxiliar LP:\n");
 		print_matrix(auxiliar_lp, m, auxiliar_n);
 
-		// Using precision
-	    if(auxiliar_lp[0][auxiliar_n - 1] < -0.00001) { // LP is infeasible
+	    if(auxiliar_lp[0][auxiliar_n - 1] < 0) { // LP is infeasible
 	    	printf("PL inviável, aqui está um certificado ");
 	    	// The optimal solution for the dual of the auxiliar LP is a certificate of infeasibility for the original.
 	    	print_output_vector(get_dual_optimal_solution(auxiliar_lp, m), m - 1);
@@ -339,6 +339,11 @@ void operate_on_rows(double** matrix, int m, int n, double multiply_by, int sum_
 
 	new_row = malloc(n * sizeof(double)); 
 
+	//Solves problem for really small negative numbers causing -0 to be printed and for really big ratios to appear
+	if(fabs(multiply_by) < 0.00001) {
+		multiply_by = 0;
+	}
+
 	printf("Multiply row %d by %g and sum to row %d\n", m, multiply_by, sum_to);
 
 	printf("The new row is:\n");
@@ -353,11 +358,17 @@ void operate_on_rows(double** matrix, int m, int n, double multiply_by, int sum_
 	if(sum_to == -1) {
 		for(j = 0; j < n; j++) {
 			matrix[m][j] = new_row[j]; // TODO - Check if matrix[m] = new_row, or its variants, works
+			if(fabs(matrix[m][j]) < 0.00001) {
+				matrix[m][j] = 0;
+			}
 		}	
 	}
 	else {
 		for(j = 0; j < n; j++) {
 			matrix[sum_to][j] += new_row[j];
+			if(fabs(matrix[sum_to][j]) < 0.00001) {
+				matrix[sum_to][j] = 0;
+			}
 		}	
 	}
 }
@@ -513,7 +524,7 @@ void format_canonical(double** matrix, int m, int n, int* base) {
 }
 
 // Needs to return the column, the row and the base that is leaving
-int find_next_base_primal(double** matrix, int m, int n, int* base_row, int* base_column) {
+int primal_next_base(double** matrix, int m, int n, int* base_row, int* base_column) {
 	int i, j;
 	double min_ratio, row_ratio;
 
@@ -581,7 +592,90 @@ int primal_simplex(double** matrix, int m, int n, int* base, int print_output) {
 		}
 
 		// Find the next base for the primal simplex
-		result = find_next_base_primal(matrix, m, n, &new_base_row, &new_base_column);
+		result = primal_next_base(matrix, m, n, &new_base_row, &new_base_column);
+
+		if(result != 0) {
+			printf("Result %d\n\n", result);
+			return result;
+		}
+
+		printf("The new base is column %d and row %d\n\n", new_base_column, new_base_row);
+
+		base[new_base_row - 1] = new_base_column;
+
+		printf("____________________________________________________\n\n");
+		getchar();
+	}
+}
+
+int dual_next_base(double** matrix, int m, int n, int* base_row, int* base_column) {
+	int i, j;
+	double min_ratio, row_ratio;
+
+	min_ratio = 999999;
+
+	printf("\n");
+
+	for(j = (m - 1); j < (n - 1); j++) {
+		if(matrix[0][j] < 0) {
+			*base_column = j;
+			printf("Chosen column to enter the base was %d\n", j);
+			for(i = 1; i < m; i++) {
+				// This not only dimishes the number of useless operations but prevents 0 divided by negative numbers
+				if((matrix[i][j] != 0) && ((matrix[i][j] >= 0 && matrix[i][n - 1] >= 0) || (matrix[i][j] < 0 && matrix[i][n - 1] < 0))) {
+					if(matrix[i][n - 1] == 0 && matrix[i][j] < 0) {
+						continue;
+					}
+					row_ratio = matrix[i][n - 1] / matrix[i][j];
+					printf("Ratio of row %d and column %d is %g\n", i, j, row_ratio);
+					if(row_ratio < min_ratio) {
+						min_ratio = row_ratio;
+						*base_row = i;
+					}
+				}
+			}
+			if(min_ratio == 999999) {
+				return j; // LP is unbounded
+			}
+			else {
+				return 0; // Goes to the next round of simplex
+			}
+		}
+	}
+
+	return -1; // LP is optimal
+}
+
+int dual_simplex(double** matrix, int m, int n, int* base, int print_output) {
+	int i, result, new_base_row, new_base_column;
+
+//	make_c_non_negative(matrix, m, n);
+
+	printf("Initial LP\n\n");
+	print_matrix(matrix, m, n);
+	printf("____________________________________________________\n\n");
+
+	while(1) {
+
+		new_base_row = 0;
+		new_base_column = 0;
+
+		// First we need to present the LP in the canonical form
+		format_canonical(matrix, m, n, base);
+
+		printf("Canonical form for bases ");
+		for(i = 0; i < (m - 1); i++) {
+			printf("%d ", base[i]);
+		}
+		printf("\n\n");
+		print_matrix(matrix, m, n);
+
+		if(print_output) {
+			print_output_matrix(matrix, m, n);
+		}
+
+		// Find the next base for the primal simplex
+		result = primal_next_base(matrix, m, n, &new_base_row, &new_base_column);
 
 		if(result != 0) {
 			printf("Result %d\n\n", result);
@@ -658,11 +752,6 @@ void print_output_vector(double* vector, int n) {
 
 	printf("{");
 	for(i = 0; i < n; i++) {
-		//Solves problem for really small negative numbers causing -0 to be printed
-		if(fabs(vector[i]) < 0.00001) {
-			vector[i] = 0;
-		}
-
 		printf("%g", round(vector[i] * 100000) / 100000);
 		if(i != (n - 1)) {
 			printf(", ");
