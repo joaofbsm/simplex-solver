@@ -47,7 +47,7 @@ CERTIFICATES
  * - Maybe in the future the output file will not be used
  * - Refactor code optimizing it and renaming variables and functions
  * - Make simplex receive a parameter that sets if output is going to be printed
- * - Solve -0 being printed
+ * - Merge both simplex algorithm into only one
  */
 
 /* PROBLEMS 
@@ -63,10 +63,13 @@ void print_matrix(double** matrix, int m, int n);
 void copy_matrix(double** original, double** copy, int m, int n);
 void insert_matrix(double** source, double** target, int from_row, int to_row, int from_column, int to_column);
 void operate_on_rows(double** matrix, int m, int n, double multiply_by, int sum_to);
+void operate_on_columns(double** matrix, int m, int n, double multiply_by, int sum_to);
+
 double** format_sef(double** matrix, int m, int n);
 void format_tableau(double** matrix, int m, int n);
 double** add_operations_register(double** matrix, int m, int n);
 void make_b_non_negative(double** matrix, int m, int n);
+void make_c_non_negative(double** matrix, int m, int n);
 double** create_auxiliar_lp(double** matrix, int m, int n);
 void set_initial_base(double** matrix, int m, int n, int* base);
 void format_canonical(double** matrix, int m, int n, int* base);
@@ -137,21 +140,21 @@ int main(int argc, char* argv[]) {
 	    auxiliar_lp = create_auxiliar_lp(matrix, m, n);
 	    auxiliar_n = n + m - 1; // Value of n for the auxiliar PL with the operation register matrix on its side
 
-	    printf("\nAuxiliar(auxiliar_n = %d):\n", auxiliar_n);
-	    print_matrix(auxiliar_lp, m, auxiliar_n);
+//	    printf("\nAuxiliar(auxiliar_n = %d):\n", auxiliar_n);
+//	    print_matrix(auxiliar_lp, m, auxiliar_n);
 
 	    // Set the initial base for the auxiliar LP. j is the first row for the inserted columns
 	    set_initial_base(auxiliar_lp, m, auxiliar_n, base);
-	    printf("Auxiliar Base:\n");
-	    for(i = 0; i < (m - 1); i++) {
-	    	printf("%d ", base[i]);
-	    }
-	    printf("\n\n");
+//	    printf("Auxiliar Base:\n");
+//	    for(i = 0; i < (m - 1); i++) {
+//	    	printf("%d ", base[i]);
+//	    }
+//	    printf("\n\n");
 
 	    // The base now is the final base of the auxiliar LP, which is a good one to begin the simplex with
 		primal_simplex(auxiliar_lp, m, auxiliar_n, base, 1);
-		printf("Optimal Auxiliar LP:\n");
-		print_matrix(auxiliar_lp, m, auxiliar_n);
+//		printf("Optimal Auxiliar LP:\n");
+//		print_matrix(auxiliar_lp, m, auxiliar_n);
 
 	    if(auxiliar_lp[0][auxiliar_n - 1] < 0) { // LP is infeasible
 	    	printf("PL inviável, aqui está um certificado ");
@@ -181,21 +184,16 @@ int main(int argc, char* argv[]) {
 	    	printf("Você gostaria de resolver pelo simplex (P)rimal ou (D)ual? ");
 	    	scanf(" %c", &simplex_type);
 
+	    	// Set bases to the slack variables
+			set_initial_base(matrix, m, n, base);
+
 	    	switch(simplex_type) {
 	    		case 'P':
-
-	    		// Set bases to the slack variables
-			    set_initial_base(matrix, m, n, base);
-
 	    		result = primal_simplex(matrix, m, n, base, 1);
-
-//	    		printf("Optimal LP:\n");
-//				print_matrix(matrix, m, n);
-
 	    		break;
 
 	    		case 'D':
-	    		printf("D.");
+	    		result = dual_simplex(matrix, m, n, base, 1);
 	    		break;
 
 	    		default:
@@ -221,7 +219,7 @@ int main(int argc, char* argv[]) {
 void parse_input(FILE* input, double** matrix, int m, int n) {
 	int i, j, input_size;
 
-    input_size = (2 + (4 * m) + (m * (3 * n))); // Approximated size of input
+    input_size = (2 + (4 * m) + (m * (8 * n))); // Approximated size of input
     char* input_matrix = malloc(input_size * sizeof(char)); // Unformated LP
     fgets(input_matrix, input_size, input); 
 
@@ -344,16 +342,16 @@ void operate_on_rows(double** matrix, int m, int n, double multiply_by, int sum_
 		multiply_by = 0;
 	}
 
-	printf("Multiply row %d by %g and sum to row %d\n", m, multiply_by, sum_to);
+//	printf("Multiply row %d by %g and sum to row %d\n", m, multiply_by, sum_to);
 
-	printf("The new row is:\n");
+//	printf("The new row is:\n");
 	for(j = 0; j < n; j++) {
 		if(matrix[m][j] != 0) {
 			new_row[j] = matrix[m][j] * multiply_by;
-			printf("%lf ", new_row[j]);
 		}
+//		printf("%g ", new_row[j]);
 	}
-	printf("\n\n");
+//	printf("\n\n");
 
 	if(sum_to == -1) {
 		for(j = 0; j < n; j++) {
@@ -368,6 +366,43 @@ void operate_on_rows(double** matrix, int m, int n, double multiply_by, int sum_
 			matrix[sum_to][j] += new_row[j];
 			if(fabs(matrix[sum_to][j]) < 0.00001) {
 				matrix[sum_to][j] = 0;
+			}
+		}	
+	}
+}
+
+void operate_on_columns(double** matrix, int m, int n, double multiply_by, int sum_to) {
+	double* new_column;
+	int i;
+
+	new_column = malloc(n * sizeof(double)); 
+
+	//Solves problem for really small negative numbers causing -0 to be printed and for really big ratios to appear
+	if(fabs(multiply_by) < 0.00001) {
+		multiply_by = 0;
+	}
+
+//	printf("Multiply col %d by %g and sum to row %d\n", m, multiply_by, sum_to);
+
+	for(i = 0; i < m; i++) {
+		if(matrix[i][n] != 0) {
+			new_column[i] = matrix[i][n] * multiply_by;
+		}
+	}
+
+	if(sum_to == -1) {
+		for(i = 0; i < m; i++) {
+			matrix[i][n] = new_column[i];
+			if(fabs(matrix[i][n]) < 0.00001) {
+				matrix[i][n] = 0;
+			}
+		}	
+	}
+	else {
+		for(i = 0; i < m; i++) {
+			matrix[i][sum_to] += new_column[i];
+			if(fabs(matrix[i][sum_to]) < 0.00001) {
+				matrix[i][sum_to] = 0;
 			}
 		}	
 	}
@@ -444,6 +479,17 @@ void make_b_non_negative(double** matrix, int m, int n) {
 	}
 }
 
+void make_c_non_negative(double** matrix, int m, int n) {
+	int j;
+
+	// First check if c > 0
+	for(j = 0; j < (n - 1); j++) {
+		if(matrix[0][j] < 0) {
+			operate_on_columns(matrix, m, j, -1, -1);
+		}
+	}
+}
+
 double** create_auxiliar_lp(double** matrix, int m, int n) {
 	double** auxiliar_lp;
 	double** copied_matrix;
@@ -511,6 +557,9 @@ void format_canonical(double** matrix, int m, int n, int* base) {
 
 	for(i = 0; i < (m - 1); i++) { // Goes through all the basic columns
 		if(matrix[i + 1][base[i]] != 1) { 
+			if(matrix[i + 1][base[i]] == 0) {
+				// TODO - Find row(beginning from 1) where this column is not zero and add it to the current one
+			}
 			operate_on_rows(matrix, (i + 1), n, (1 / matrix[i + 1][base[i]]), -1);
 		}
 		for(j = 0; j < m; j++) {
@@ -530,20 +579,17 @@ int primal_next_base(double** matrix, int m, int n, int* base_row, int* base_col
 
 	min_ratio = 999999;
 
-	printf("\n");
+//	printf("\n");
 
 	for(j = (m - 1); j < (n - 1); j++) {
 		if(matrix[0][j] < 0) {
 			*base_column = j;
-			printf("Chosen column to enter the base was %d\n", j);
+//			printf("Chosen column to enter the base was %d\n", j);
 			for(i = 1; i < m; i++) {
-				// This not only dimishes the number of useless operations but prevents 0 divided by negative numbers
-				if((matrix[i][j] != 0) && ((matrix[i][j] >= 0 && matrix[i][n - 1] >= 0) || (matrix[i][j] < 0 && matrix[i][n - 1] < 0))) {
-					if(matrix[i][n - 1] == 0 && matrix[i][j] < 0) {
-						continue;
-					}
+				// b will never be negative after primal simplex starts to run, so, for a valid ratio, we need a positive number that is not zero
+				if(matrix[i][j] > 0) {
 					row_ratio = matrix[i][n - 1] / matrix[i][j];
-					printf("Ratio of row %d and column %d is %g\n", i, j, row_ratio);
+//					printf("Ratio of row %d and column %d is %g\n", i, j, row_ratio);
 					if(row_ratio < min_ratio) {
 						min_ratio = row_ratio;
 						*base_row = i;
@@ -568,9 +614,9 @@ int primal_simplex(double** matrix, int m, int n, int* base, int print_output) {
 
 	make_b_non_negative(matrix, m, n);
 
-	printf("Initial LP\n\n");
-	print_matrix(matrix, m, n);
-	printf("____________________________________________________\n\n");
+//	printf("Starting Primal Simplex with LP\n\n");
+//	print_matrix(matrix, m, n);
+//	printf("____________________________________________________\n\n");
 
 	while(1) {
 
@@ -580,12 +626,12 @@ int primal_simplex(double** matrix, int m, int n, int* base, int print_output) {
 		// First we need to present the LP in the canonical form
 		format_canonical(matrix, m, n, base);
 
-		printf("Canonical form for bases ");
-		for(i = 0; i < (m - 1); i++) {
-			printf("%d ", base[i]);
-		}
-		printf("\n\n");
-		print_matrix(matrix, m, n);
+//		printf("Canonical form for bases ");
+//		for(i = 0; i < (m - 1); i++) {
+//			printf("%d ", base[i]);
+//		}
+//		printf("\n\n");
+//		print_matrix(matrix, m, n);
 
 		if(print_output) {
 			print_output_matrix(matrix, m, n);
@@ -595,16 +641,16 @@ int primal_simplex(double** matrix, int m, int n, int* base, int print_output) {
 		result = primal_next_base(matrix, m, n, &new_base_row, &new_base_column);
 
 		if(result != 0) {
-			printf("Result %d\n\n", result);
+//			printf("Result %d\n\n", result);
 			return result;
 		}
 
-		printf("The new base is column %d and row %d\n\n", new_base_column, new_base_row);
+//		printf("The new base is column %d and row %d\n\n", new_base_column, new_base_row);
 
 		base[new_base_row - 1] = new_base_column;
 
-		printf("____________________________________________________\n\n");
-		getchar();
+//		printf("____________________________________________________\n\n");
+//		getchar();
 	}
 }
 
@@ -614,23 +660,20 @@ int dual_next_base(double** matrix, int m, int n, int* base_row, int* base_colum
 
 	min_ratio = 999999;
 
-	printf("\n");
+//	printf("\n");
 
-	for(j = (m - 1); j < (n - 1); j++) {
-		if(matrix[0][j] < 0) {
-			*base_column = j;
-			printf("Chosen column to enter the base was %d\n", j);
-			for(i = 1; i < m; i++) {
-				// This not only dimishes the number of useless operations but prevents 0 divided by negative numbers
-				if((matrix[i][j] != 0) && ((matrix[i][j] >= 0 && matrix[i][n - 1] >= 0) || (matrix[i][j] < 0 && matrix[i][n - 1] < 0))) {
-					if(matrix[i][n - 1] == 0 && matrix[i][j] < 0) {
-						continue;
-					}
-					row_ratio = matrix[i][n - 1] / matrix[i][j];
-					printf("Ratio of row %d and column %d is %g\n", i, j, row_ratio);
+	for(i = 1; i < m; i++) {
+		if(matrix[i][n - 1] < 0) {
+			*base_row = i;
+//			printf("Chosen row to enter the base was %d\n", i);
+			for(j = (m - 1); j < (n - 1); j++) {
+				// c will never be negative after primal simplex starts to run, so, for a valid ratio, we need a negative number that is not zero
+				if(matrix[i][j] < 0) {
+					row_ratio = matrix[0][j] / (-1 * matrix[i][j]);
+//					printf("Ratio of row %d and column %d is %g\n", i, j, row_ratio);
 					if(row_ratio < min_ratio) {
 						min_ratio = row_ratio;
-						*base_row = i;
+						*base_column = j;
 					}
 				}
 			}
@@ -649,11 +692,11 @@ int dual_next_base(double** matrix, int m, int n, int* base_row, int* base_colum
 int dual_simplex(double** matrix, int m, int n, int* base, int print_output) {
 	int i, result, new_base_row, new_base_column;
 
-//	make_c_non_negative(matrix, m, n);
+	make_c_non_negative(matrix, m, n);
 
-	printf("Initial LP\n\n");
-	print_matrix(matrix, m, n);
-	printf("____________________________________________________\n\n");
+//	printf("Starting Dual Simplex with LP\n\n");
+//	print_matrix(matrix, m, n);
+//	printf("____________________________________________________\n\n");
 
 	while(1) {
 
@@ -663,31 +706,31 @@ int dual_simplex(double** matrix, int m, int n, int* base, int print_output) {
 		// First we need to present the LP in the canonical form
 		format_canonical(matrix, m, n, base);
 
-		printf("Canonical form for bases ");
-		for(i = 0; i < (m - 1); i++) {
-			printf("%d ", base[i]);
-		}
-		printf("\n\n");
-		print_matrix(matrix, m, n);
+//		printf("Canonical form for bases ");
+//		for(i = 0; i < (m - 1); i++) {
+//			printf("%d ", base[i]);
+//		}
+//		printf("\n\n");
+//		print_matrix(matrix, m, n);
 
 		if(print_output) {
 			print_output_matrix(matrix, m, n);
 		}
 
 		// Find the next base for the primal simplex
-		result = primal_next_base(matrix, m, n, &new_base_row, &new_base_column);
+		result = dual_next_base(matrix, m, n, &new_base_row, &new_base_column);
 
 		if(result != 0) {
-			printf("Result %d\n\n", result);
+//			printf("Result %d\n\n", result);
 			return result;
 		}
 
-		printf("The new base is column %d and row %d\n\n", new_base_column, new_base_row);
+//		printf("The new base is column %d and row %d\n\n", new_base_column, new_base_row);
 
 		base[new_base_row - 1] = new_base_column;
 
-		printf("____________________________________________________\n\n");
-		getchar();
+//		printf("____________________________________________________\n\n");
+//		getchar();
 	}
 }
 
