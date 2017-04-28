@@ -526,10 +526,14 @@ int find_next_base_primal(double** matrix, int m, int n, int* base_row, int* bas
 			*base_column = j;
 			printf("Chosen column to enter the base was %d\n", j);
 			for(i = 1; i < m; i++) {
-				if(matrix[i][j] != 0) {
+				// This not only dimishes the number of useless operations but prevents 0 divided by negative numbers
+				if((matrix[i][j] != 0) && ((matrix[i][j] >= 0 && matrix[i][n - 1] >= 0) || (matrix[i][j] < 0 && matrix[i][n - 1] < 0))) {
+					if(matrix[i][n - 1] == 0 && matrix[i][j] < 0) {
+						continue;
+					}
 					row_ratio = matrix[i][n - 1] / matrix[i][j];
 					printf("Ratio of row %d and column %d is %g\n", i, j, row_ratio);
-					if(row_ratio >= 0 && row_ratio < min_ratio) {
+					if(row_ratio < min_ratio) {
 						min_ratio = row_ratio;
 						*base_row = i;
 					}
@@ -547,9 +551,7 @@ int find_next_base_primal(double** matrix, int m, int n, int* base_row, int* bas
 	return -1; // LP is optimal
 }
 
-/* TODO - Before starting, check if b > 0. Do this for the original LP before creating the auxiliar one
- * If return = -1 the LP is optimal and if return > 0 it's unbounded and the return value = the column where we can get the certificate
- */
+// If return = -1 the LP is optimal and if return > 0 it's unbounded and the return value = the column where we can get the certificate
 int primal_simplex(double** matrix, int m, int n, int* base, int print_output) {	
 	int i, result, new_base_row, new_base_column;
 
