@@ -18,10 +18,13 @@ void operate_on_columns(double** matrix, int m, int n, double multiply_by, int s
 double** format_sef(double** matrix, int m, int n);
 void format_tableau(double** matrix, int m, int n);
 double** add_operations_register(double** matrix, int m, int n);
+int is_b_negative(double** matrix, int m, int n);
 void make_b_non_negative(double** matrix, int m, int n);
+int is_c_negative(double** matrix, int m, int n);
 void make_c_non_negative(double** matrix, int m, int n);
 double** create_auxiliar_lp(double** matrix, int m, int n);
 void set_initial_base(double** matrix, int m, int n, int* base);
+int find_non_zero_element(double** matrix, int m, int column);
 void format_canonical(double** matrix, int m, int n, int* base);
 int primal_next_base(double** matrix, int m, int n, int* base_row, int* base_column);
 int primal_simplex(double** matrix, int m, int n, int* base, int print_output);

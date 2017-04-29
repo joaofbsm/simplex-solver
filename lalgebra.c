@@ -268,15 +268,38 @@ double** add_operations_register(double** original_matrix, int m, int n) {
 	return new_matrix;
 }
 
+int is_b_negative(double** matrix, int m, int n) {
+	int i;
+
+	for(i = 1; i < m; i++) {
+		if(matrix[i][n - 1] < 0) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 void make_b_non_negative(double** matrix, int m, int n) {
 	int i;
 
-	// First check if b > 0
 	for(i = 1; i < m; i++) {
 		if(matrix[i][n - 1] < 0) {
 			operate_on_rows(matrix, i, n, -1, -1);
 		}
 	}
+}
+
+int is_c_negative(double** matrix, int m, int n) {
+	int j;
+
+	for(j = 0; j < (n - 1); j++) {
+		if(matrix[0][j] < 0) {
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
 void make_c_non_negative(double** matrix, int m, int n) {
@@ -345,6 +368,20 @@ void set_initial_base(double** matrix, int m, int n, int* base) {
     }
 }
 
+// Finds non zero element on received row and column and returns the first row index
+int find_non_zero_element(double** matrix, int m, int column) {
+	int i;
+
+	for(i = 1; i < m; i++) {
+		// Probably this needs to be > 0, otherwise it can screw up the LP
+		if(matrix[i][column] != 0) {
+			return i;
+		}
+	}
+
+	return 0;
+}
+
 // Format the LP to the Canonical Form
 void format_canonical(double** matrix, int m, int n, int* base) {
 	/* Function flow *
@@ -356,10 +393,10 @@ void format_canonical(double** matrix, int m, int n, int* base) {
 	int i, j;
 
 	for(i = 0; i < (m - 1); i++) { // Goes through all the basic columns
+		if(matrix[i + 1][base[i]] == 0) {
+			operate_on_rows(matrix, (find_non_zero_element(matrix, m, base[i])), n, 1, (i + 1));
+		}
 		if(matrix[i + 1][base[i]] != 1) { 
-			if(matrix[i + 1][base[i]] == 0) {
-				// TODO - Find row(beginning from 1) where this column is not zero and add it to the current one
-			}
 			operate_on_rows(matrix, (i + 1), n, (1 / matrix[i + 1][base[i]]), -1);
 		}
 		for(j = 0; j < m; j++) {
@@ -499,7 +536,7 @@ int dual_simplex(double** matrix, int m, int n, int* base, int print_output) {
 	make_c_non_negative(matrix, m, n);
 
 //	printf("Starting Dual Simplex with LP\n\n");
-//	print_matrix(matrix, m, n);
+	print_matrix(matrix, m, n);
 //	printf("____________________________________________________\n\n");
 
 	while(1) {
@@ -515,7 +552,7 @@ int dual_simplex(double** matrix, int m, int n, int* base, int print_output) {
 //			printf("%d ", base[i]);
 //		}
 //		printf("\n\n");
-//		print_matrix(matrix, m, n);
+		print_matrix(matrix, m, n);
 
 		if(print_output) {
 			print_output_matrix(matrix, m, n);

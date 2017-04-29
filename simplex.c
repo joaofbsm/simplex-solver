@@ -40,12 +40,11 @@
 
 /* PROBLEMS 
  * - Once again, when should we use an auxiliar LP in the second mode? When b is negative and c is positive in the tableau, we need the Auxiliar LP to get a viable base to start with.
- * - The LP can't be solved by the simplex, if we run the auxiliar first, sometimes. We need to correct that. There is a TODO explaining how in the format_canonical function
  * - opt_lista3ex1b.txt not working properly
  */
 
 /* QUESTIONS
- * - Should our program adapt to solve, for instance, a problem with dual simplex where primal would be the right choice?
+ * - Program adapts itself to solve LP's if the wrong simplex is requested. It works for Primal Simplex but not for Dual(The chosen bases on the Auxiliar LP are not good enough) -> ASK TEACHER FOR HELP
  */
 
 int main(int argc, char* argv[]) {
@@ -145,15 +144,35 @@ int main(int argc, char* argv[]) {
 	    	printf("Você gostaria de resolver pelo simplex (P)rimal ou (D)ual? ");
 	    	scanf(" %c", &simplex_type);
 
-	    	// Set bases to the slack variables
-			set_initial_base(lp, m, n, base);
 
 	    	switch(simplex_type) {
 	    		case 'P':
+	    		if(is_b_negative(lp, m, n)) {
+	    			auxiliar_lp = create_auxiliar_lp(lp, m, n);
+	    			auxiliar_n = n + m - 1; // Value of n for the auxiliar PL with the operation register matrix on its side
+	    			set_initial_base(auxiliar_lp, m, auxiliar_n, base);
+	    			primal_simplex(auxiliar_lp, m, auxiliar_n, base, 0);
+	    		}
+	    		else {
+	    			// Set bases to the slack variables
+					set_initial_base(lp, m, n, base);
+	    		}
+
 	    		simplex_result = primal_simplex(lp, m, n, base, 1);
 	    		break;
 
 	    		case 'D':
+	    		if(is_c_negative(lp, m, n)) {
+	    			auxiliar_lp = create_auxiliar_lp(lp, m, n);
+	    			auxiliar_n = n + m - 1; // Value of n for the auxiliar PL with the operation register matrix on its side
+	    			set_initial_base(auxiliar_lp, m, auxiliar_n, base);
+	    			primal_simplex(auxiliar_lp, m, auxiliar_n, base, 0);
+	    		}
+	    		else {
+	    			// Set bases to the slack variables
+					set_initial_base(lp, m, n, base);
+	    		}
+
 	    		simplex_result = dual_simplex(lp, m, n, base, 1);
 	    		break;
 
