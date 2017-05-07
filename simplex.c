@@ -33,8 +33,6 @@
 
 /* TODO: 
  * - Create struct of type LP with double** matrix, int m, int n, int type(-1 infeasible, 0 optimal, 1 unbounded)
- * - Refactor code optimizing it and renaming variables and functions
- * - Merge both simplex algorithm into only one
  */
 
 /* PROBLEMS 
@@ -181,7 +179,7 @@ int main(int argc, char* argv[]) {
 
 	free(lp);
 	free(base);
-	if(auxiliar_lp != NULL) { // If it was used to solve the LP we need to free it
+	if(auxiliar_lp != NULL) { // If it was used to solve the LP, we need to free it
 		free(auxiliar_lp); 
 	}
 

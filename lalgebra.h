@@ -17,8 +17,8 @@ void print_matrix(double** matrix, int m, int n);
 void copy_matrix(double** original, double** copy, int m, int n);
 void insert_matrix(double** source, double** target, int from_row, int to_row, int from_column, int to_column);
 
-void operate_on_rows(double** matrix, int m, int n, double multiply_by, int sum_to);
-void operate_on_columns(double** matrix, int m, int n, double multiply_by, int sum_to);
+void operate_on_rows(double** matrix, int row, int n, double multiply_by, int sum_to);
+void operate_on_columns(double** matrix, int m, int column, double multiply_by, int sum_to);
 
 double** format_sef(double** matrix, int m, int n);
 void format_tableau(double** matrix, int m, int n);
