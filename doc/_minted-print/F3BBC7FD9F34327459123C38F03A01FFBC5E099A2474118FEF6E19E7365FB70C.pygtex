@@ -1,0 +1,610 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYGdefault{c+cm}{/* Linear Algebra and Simplex Algorithms Library}
+\PYGdefault{c+cm}{ * Developed by Joao Francisco B. S. Martins \PYGdefaultZlt{}joaofbsm@dcc.ufmg.br\PYGdefaultZgt{}}
+\PYGdefault{c+cm}{ */}
+
+\PYGdefault{c+cp}{\PYGdefaultZsh{}include} \PYGdefault{c+cpf}{\PYGdefaultZlt{}stdio.h\PYGdefaultZgt{}}
+\PYGdefault{c+cp}{\PYGdefaultZsh{}include} \PYGdefault{c+cpf}{\PYGdefaultZlt{}stdlib.h\PYGdefaultZgt{}}
+\PYGdefault{c+cp}{\PYGdefaultZsh{}include} \PYGdefault{c+cpf}{\PYGdefaultZlt{}string.h\PYGdefaultZgt{}}
+\PYGdefault{c+cp}{\PYGdefaultZsh{}include} \PYGdefault{c+cpf}{\PYGdefaultZlt{}math.h\PYGdefaultZgt{}}
+\PYGdefault{c+cp}{\PYGdefaultZsh{}include} \PYGdefault{c+cpf}{\PYGdefaultZlt{}ctype.h\PYGdefaultZgt{}}
+
+\PYGdefault{c+cp}{\PYGdefaultZsh{}include} \PYGdefault{c+cpf}{\PYGdefaultZdq{}lalgebra.h\PYGdefaultZdq{}}
+
+\PYGdefault{c+c1}{// Constant to solve floating point comparisons}
+\PYGdefault{c+cp}{\PYGdefaultZsh{}define EPSILON 0.000001}
+
+\PYGdefault{c+cm}{/***** INPUT AND OUTPUT ******/}
+
+\PYGdefault{c+c1}{// Parses through the input file and format the given linear programming}
+\PYGdefault{k+kt}{void} \PYGdefault{n+nf}{parse\PYGdefaultZus{}input}\PYGdefault{p}{(}\PYGdefault{k+kt}{FILE}\PYGdefault{o}{*} \PYGdefault{n}{input}\PYGdefault{p}{,} \PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{,} \PYGdefault{n}{j}\PYGdefault{p}{,} \PYGdefault{n}{input\PYGdefaultZus{}size}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{input\PYGdefaultZus{}size} \PYGdefault{o}{=} \PYGdefault{p}{(}\PYGdefault{l+m+mi}{2} \PYGdefault{o}{+} \PYGdefault{p}{(}\PYGdefault{l+m+mi}{4} \PYGdefault{o}{*} \PYGdefault{n}{m}\PYGdefault{p}{)} \PYGdefault{o}{+} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{*} \PYGdefault{p}{(}\PYGdefault{l+m+mi}{9} \PYGdefault{o}{*} \PYGdefault{n}{n}\PYGdefault{p}{)));} \PYGdefault{c+c1}{// Approximated size of input}
+  \PYGdefault{k+kt}{char}\PYGdefault{o}{*} \PYGdefault{n}{input\PYGdefaultZus{}matrix} \PYGdefault{o}{=} \PYGdefault{n}{malloc}\PYGdefault{p}{(}\PYGdefault{n}{input\PYGdefaultZus{}size} \PYGdefault{o}{*} \PYGdefault{k}{sizeof}\PYGdefault{p}{(}\PYGdefault{k+kt}{char}\PYGdefault{p}{));} \PYGdefault{c+c1}{// Unformated LP}
+  \PYGdefault{n}{fgets}\PYGdefault{p}{(}\PYGdefault{n}{input\PYGdefaultZus{}matrix}\PYGdefault{p}{,} \PYGdefault{n}{input\PYGdefaultZus{}size}\PYGdefault{p}{,} \PYGdefault{n}{input}\PYGdefault{p}{);} 
+
+  \PYGdefault{k+kt}{char}\PYGdefault{o}{*} \PYGdefault{n}{row} \PYGdefault{o}{=} \PYGdefault{n}{strtok}\PYGdefault{p}{(}\PYGdefault{n}{input\PYGdefaultZus{}matrix}\PYGdefault{p}{,} \PYGdefault{l+s}{\PYGdefaultZdq{}\PYGdefaultZob{}\PYGdefaultZdq{}}\PYGdefault{p}{);} \PYGdefault{c+c1}{// Parsed first row}
+
+  \PYGdefault{c+c1}{// Parsing of rows to get elements and fill matrix}
+  \PYGdefault{k}{while}\PYGdefault{p}{(}\PYGdefault{n}{row} \PYGdefault{o}{!=} \PYGdefault{n+nb}{NULL}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} 
+    \PYGdefault{k+kt}{char}\PYGdefault{o}{*} \PYGdefault{n}{element} \PYGdefault{o}{=} \PYGdefault{n}{row}\PYGdefault{p}{;}
+    \PYGdefault{k}{while} \PYGdefault{p}{(}\PYGdefault{o}{*}\PYGdefault{n}{element}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{k}{if} \PYGdefault{p}{((}\PYGdefault{n}{element}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{]} \PYGdefault{o}{==} \PYGdefault{l+s+sc}{\PYGdefaultZsq{}\PYGdefaultZhy{}\PYGdefaultZsq{}} \PYGdefault{o}{\PYGdefaultZam{}\PYGdefaultZam{}} \PYGdefault{n}{isdigit}\PYGdefault{p}{(}\PYGdefault{n}{element}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{1}\PYGdefault{p}{]))} \PYGdefault{o}{||} \PYGdefault{n}{isdigit}\PYGdefault{p}{(}\PYGdefault{n}{element}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{]))} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Check if char is a number}
+        \PYGdefault{k+kt}{double} \PYGdefault{n}{val} \PYGdefault{o}{=} \PYGdefault{n}{strtol}\PYGdefault{p}{(}\PYGdefault{n}{element}\PYGdefault{p}{,} \PYGdefault{o}{\PYGdefaultZam{}}\PYGdefault{n}{element}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{10}\PYGdefault{p}{);} \PYGdefault{c+c1}{// Convert char to number in base 10}
+        \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{val}\PYGdefault{p}{;} \PYGdefault{c+c1}{// Add element to the corresponding position in the matrix}
+        \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{;}
+      \PYGdefault{p}{\PYGdefaultZcb{}} 
+      \PYGdefault{k}{else} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{n}{element}\PYGdefault{o}{++}\PYGdefault{p}{;}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+
+    \PYGdefault{n}{row} \PYGdefault{o}{=} \PYGdefault{n}{strtok}\PYGdefault{p}{(}\PYGdefault{n+nb}{NULL}\PYGdefault{p}{,} \PYGdefault{l+s}{\PYGdefaultZdq{}\PYGdefaultZob{}\PYGdefaultZdq{}}\PYGdefault{p}{);}
+    \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{;}
+    \PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+
+\PYGdefault{c+c1}{// Prints the vector received in the format specified by the problem}
+\PYGdefault{k+kt}{void} \PYGdefault{n+nf}{print\PYGdefaultZus{}output\PYGdefaultZus{}vector}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{*} \PYGdefault{n}{vector}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}\PYGdefaultZob{}\PYGdefaultZdq{}}\PYGdefault{p}{);}
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{n}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}\PYGdefaultZpc{}g\PYGdefaultZdq{}}\PYGdefault{p}{,} \PYGdefault{n}{round}\PYGdefault{p}{(}\PYGdefault{n}{vector}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]} \PYGdefault{o}{*} \PYGdefault{l+m+mi}{100000}\PYGdefault{p}{)} \PYGdefault{o}{/} \PYGdefault{l+m+mi}{100000}\PYGdefault{p}{);}
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{!=} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{))} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}, \PYGdefaultZdq{}}\PYGdefault{p}{);}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}\PYGdefaultZcb{}\PYGdefaultZdq{}}\PYGdefault{p}{);}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Prints the subvectors of the matrix and wrap everything up to the specified format}
+\PYGdefault{k+kt}{void} \PYGdefault{n+nf}{print\PYGdefaultZus{}output\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}\PYGdefaultZob{}\PYGdefaultZdq{}}\PYGdefault{p}{);}
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{n}{print\PYGdefaultZus{}output\PYGdefaultZus{}vector}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{],} \PYGdefault{n}{n}\PYGdefault{p}{);}
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{!=} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{))} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}, \PYGdefaultZdq{}}\PYGdefault{p}{);}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}\PYGdefaultZcb{}}\PYGdefault{l+s+se}{\PYGdefaultZbs{}n\PYGdefaultZbs{}n}\PYGdefault{l+s}{\PYGdefaultZdq{}}\PYGdefault{p}{);}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+
+\PYGdefault{c+cm}{/***** MATRIX OPERATIONS ******/}
+
+\PYGdefault{c+c1}{// Allocate matrix of dimensions m x n in the pointer of pointers **matrix.}
+\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n+nf}{allocate\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{;}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{matrix} \PYGdefault{o}{=} \PYGdefault{n}{malloc}\PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{*} \PYGdefault{k}{sizeof}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{*}\PYGdefault{p}{));}
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{malloc}\PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{*} \PYGdefault{k}{sizeof}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{p}{));} 
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{return} \PYGdefault{n}{matrix}\PYGdefault{p}{;}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Creates identity matrix of dimensions m x m.}
+\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n+nf}{identity}\PYGdefault{p}{(}\PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{identity\PYGdefaultZus{}matrix}\PYGdefault{p}{;}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{,} \PYGdefault{n}{j}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{identity\PYGdefaultZus{}matrix} \PYGdefault{o}{=} \PYGdefault{n}{allocate\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{);}
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{==} \PYGdefault{n}{j}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{n}{identity\PYGdefaultZus{}matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;} 
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+      \PYGdefault{k}{else} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{n}{identity\PYGdefaultZus{}matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} 
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{return} \PYGdefault{n}{identity\PYGdefaultZus{}matrix}\PYGdefault{p}{;}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Print matrix on the screen. This is not used by the program in its final version}
+\PYGdefault{c+c1}{// but was very useful during the development of it}
+\PYGdefault{k+kt}{void} \PYGdefault{n+nf}{print\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{,} \PYGdefault{n}{j}\PYGdefault{p}{;}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{n}\PYGdefault{p}{;} \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{l+m+mi}{0} \PYGdefault{o}{||} \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{\PYGdefaultZgt{}} \PYGdefault{l+m+mi}{9}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}\PYGdefaultZpc{}g \PYGdefaultZdq{}}\PYGdefault{p}{,} \PYGdefault{n}{round}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{*} \PYGdefault{l+m+mi}{100000}\PYGdefault{p}{)} \PYGdefault{o}{/} \PYGdefault{l+m+mi}{100000}\PYGdefault{p}{);}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+      \PYGdefault{k}{else} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{} \PYGdefaultZpc{}g \PYGdefaultZdq{}}\PYGdefault{p}{,} \PYGdefault{n}{round}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{*} \PYGdefault{l+m+mi}{100000}\PYGdefault{p}{)} \PYGdefault{o}{/} \PYGdefault{l+m+mi}{100000}\PYGdefault{p}{);}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}}\PYGdefault{l+s+se}{\PYGdefaultZbs{}n}\PYGdefault{l+s}{\PYGdefaultZdq{}}\PYGdefault{p}{);}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}}\PYGdefault{l+s+se}{\PYGdefaultZbs{}n}\PYGdefault{l+s}{\PYGdefaultZdq{}}\PYGdefault{p}{);}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Copy the value of every element in the original matrix to the new one.}
+\PYGdefault{k+kt}{void} \PYGdefault{n+nf}{copy\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{original}\PYGdefault{p}{,} \PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{copy}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{,} \PYGdefault{n}{j}\PYGdefault{p}{;}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{n}\PYGdefault{p}{;} \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{copy}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{original}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{];}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Insert source matrix inside target matrix in the submatrix comprehended by the integer offsets(from\PYGdefaultZus{}row, to\PYGdefaultZus{}row, etc). }
+\PYGdefault{c+c1}{// The dimensions must match. The received indexes start at 1 so we convert them.}
+\PYGdefault{k+kt}{void} \PYGdefault{n+nf}{insert\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{source}\PYGdefault{p}{,} \PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{target}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{from\PYGdefaultZus{}row}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{to\PYGdefaultZus{}row}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{from\PYGdefaultZus{}column}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{to\PYGdefaultZus{}column}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{,} \PYGdefault{n}{j}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{m} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+  \PYGdefault{n}{n} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{p}{(}\PYGdefault{n}{from\PYGdefaultZus{}row} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{to\PYGdefaultZus{}row}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{p}{(}\PYGdefault{n}{from\PYGdefaultZus{}column} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{to\PYGdefaultZus{}column}\PYGdefault{p}{;} \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{target}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{source}\PYGdefault{p}{[}\PYGdefault{n}{m}\PYGdefault{p}{][}\PYGdefault{n}{n}\PYGdefault{p}{];}
+      \PYGdefault{n}{n}\PYGdefault{o}{++}\PYGdefault{p}{;}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{n}{m}\PYGdefault{o}{++}\PYGdefault{p}{;}
+    \PYGdefault{n}{n} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Offers a way to make linear operations. If sum\PYGdefaultZus{}to is \PYGdefaultZhy{}1, replaces the actual line. row stands for the row }
+\PYGdefault{c+c1}{// to operate on and n stands for the dimension of columns. The index for sum\PYGdefaultZus{}to begins at 0 }
+\PYGdefault{k+kt}{void} \PYGdefault{n+nf}{operate\PYGdefaultZus{}on\PYGdefaultZus{}rows}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{row}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{k+kt}{double} \PYGdefault{n}{multiply\PYGdefaultZus{}by}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{sum\PYGdefaultZus{}to}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{double}\PYGdefault{o}{*} \PYGdefault{n}{new\PYGdefaultZus{}row}\PYGdefault{p}{;}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{j}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{new\PYGdefaultZus{}row} \PYGdefault{o}{=} \PYGdefault{n}{malloc}\PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{*} \PYGdefault{k}{sizeof}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{p}{));} 
+
+  \PYGdefault{c+c1}{// Solves problem for really small negative numbers causing \PYGdefaultZhy{}0 to be printed and for really big ratios to appear}
+  \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{fabs}\PYGdefault{p}{(}\PYGdefault{n}{multiply\PYGdefaultZus{}by}\PYGdefault{p}{)} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{EPSILON}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{n}{multiply\PYGdefaultZus{}by} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{n}\PYGdefault{p}{;} \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Create new row multiplied by multiply\PYGdefaultZus{}by}
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{row}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{!=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{new\PYGdefaultZus{}row}\PYGdefault{p}{[}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{row}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{*} \PYGdefault{n}{multiply\PYGdefaultZus{}by}\PYGdefault{p}{;}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{sum\PYGdefaultZus{}to} \PYGdefault{o}{==} \PYGdefault{o}{\PYGdefaultZhy{}}\PYGdefault{l+m+mi}{1}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Operations should stay in the same row}
+    \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{n}\PYGdefault{p}{;} \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{row}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{new\PYGdefaultZus{}row}\PYGdefault{p}{[}\PYGdefault{n}{j}\PYGdefault{p}{];}
+      \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{fabs}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{row}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{])} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{EPSILON}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{row}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{p}{\PYGdefaultZcb{}} 
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{k}{else} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Add created row to the specified one}
+    \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{n}\PYGdefault{p}{;} \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{sum\PYGdefaultZus{}to}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{+=} \PYGdefault{n}{new\PYGdefaultZus{}row}\PYGdefault{p}{[}\PYGdefault{n}{j}\PYGdefault{p}{];}
+      \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{fabs}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{sum\PYGdefaultZus{}to}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{])} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{EPSILON}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{sum\PYGdefaultZus{}to}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{p}{\PYGdefaultZcb{}} 
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Offers a way to make linear operations. If sum\PYGdefaultZus{}to is \PYGdefaultZhy{}1, replaces the actual line. m stands for the }
+\PYGdefault{c+c1}{// dimension of rows and column stands for the column to operate on. The index for sum\PYGdefaultZus{}to begins at 0 }
+\PYGdefault{k+kt}{void} \PYGdefault{n+nf}{operate\PYGdefaultZus{}on\PYGdefaultZus{}columns}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{column}\PYGdefault{p}{,} \PYGdefault{k+kt}{double} \PYGdefault{n}{multiply\PYGdefaultZus{}by}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{sum\PYGdefaultZus{}to}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{double}\PYGdefault{o}{*} \PYGdefault{n}{new\PYGdefaultZus{}column}\PYGdefault{p}{;}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{new\PYGdefaultZus{}column} \PYGdefault{o}{=} \PYGdefault{n}{malloc}\PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{*} \PYGdefault{k}{sizeof}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{p}{));} 
+
+  \PYGdefault{c+c1}{// Solves problem for really small negative numbers causing \PYGdefaultZhy{}0 to be printed and for really big ratios to appear}
+  \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{fabs}\PYGdefault{p}{(}\PYGdefault{n}{multiply\PYGdefaultZus{}by}\PYGdefault{p}{)} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{EPSILON}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{n}{multiply\PYGdefaultZus{}by} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Create new column multiplied by multiply\PYGdefaultZus{}by}
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{column}\PYGdefault{p}{]} \PYGdefault{o}{!=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{new\PYGdefaultZus{}column}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{column}\PYGdefault{p}{]} \PYGdefault{o}{*} \PYGdefault{n}{multiply\PYGdefaultZus{}by}\PYGdefault{p}{;}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{sum\PYGdefaultZus{}to} \PYGdefault{o}{==} \PYGdefault{o}{\PYGdefaultZhy{}}\PYGdefault{l+m+mi}{1}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Operations should stay in the same column}
+    \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{column}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{new\PYGdefaultZus{}column}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{];}
+      \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{fabs}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{column}\PYGdefault{p}{])} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{EPSILON}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} 
+        \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{column}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{p}{\PYGdefaultZcb{}} 
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{k}{else} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Add created column to the specified one}
+    \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{sum\PYGdefaultZus{}to}\PYGdefault{p}{]} \PYGdefault{o}{+=} \PYGdefault{n}{new\PYGdefaultZus{}column}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{];}
+      \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{fabs}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{sum\PYGdefaultZus{}to}\PYGdefault{p}{])} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{EPSILON}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{sum\PYGdefaultZus{}to}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{p}{\PYGdefaultZcb{}} 
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Format the LP to the Standard Equality Form adding the slack variables}
+\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n+nf}{format\PYGdefaultZus{}sef}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{original\PYGdefaultZus{}matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{new\PYGdefaultZus{}matrix}\PYGdefault{p}{;}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{,} \PYGdefault{n}{j}\PYGdefault{p}{,} \PYGdefault{n}{new\PYGdefaultZus{}columns}\PYGdefault{p}{,} \PYGdefault{n}{new\PYGdefaultZus{}n}\PYGdefault{p}{;}
+  
+  \PYGdefault{n}{new\PYGdefaultZus{}columns} \PYGdefault{o}{=} \PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;}
+  \PYGdefault{n}{new\PYGdefaultZus{}n} \PYGdefault{o}{=} \PYGdefault{n}{n} \PYGdefault{o}{+} \PYGdefault{n}{new\PYGdefaultZus{}columns}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{new\PYGdefaultZus{}matrix} \PYGdefault{o}{=} \PYGdefault{n}{allocate\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{+} \PYGdefault{n}{new\PYGdefaultZus{}columns}\PYGdefault{p}{));}
+
+  \PYGdefault{c+c1}{// Set first row to 0}
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{new\PYGdefaultZus{}columns}\PYGdefault{p}{;} \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{n}{new\PYGdefaultZus{}matrix}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} 
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{c+c1}{// Insert the original matrix in the beginning of the new one without the last column}
+  \PYGdefault{n}{insert\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{original\PYGdefaultZus{}matrix}\PYGdefault{p}{,} \PYGdefault{n}{new\PYGdefaultZus{}matrix}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{,} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{));}
+
+  \PYGdefault{c+c1}{// Adds the identity matrix in the correct position}
+  \PYGdefault{n}{insert\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{identity}\PYGdefault{p}{(}\PYGdefault{n}{new\PYGdefaultZus{}columns}\PYGdefault{p}{),} \PYGdefault{n}{new\PYGdefaultZus{}matrix}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{2}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{+} \PYGdefault{n}{new\PYGdefaultZus{}columns}\PYGdefault{p}{));} 
+
+  \PYGdefault{c+c1}{// Adds the last column of the original LP to the new one}
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{n}{new\PYGdefaultZus{}matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{new\PYGdefaultZus{}n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{original\PYGdefaultZus{}matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{];}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{c+c1}{// This pointer will not be used anymore}
+  \PYGdefault{n}{free}\PYGdefault{p}{(}\PYGdefault{n}{original\PYGdefaultZus{}matrix}\PYGdefault{p}{);}
+
+  \PYGdefault{k}{return} \PYGdefault{n}{new\PYGdefaultZus{}matrix}\PYGdefault{p}{;}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Negates the entries in the first row for the tableau}
+\PYGdefault{k+kt}{void} \PYGdefault{n+nf}{format\PYGdefaultZus{}tableau}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{;}
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{n}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{][}\PYGdefault{n}{i}\PYGdefault{p}{]} \PYGdefault{o}{!=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{][}\PYGdefault{n}{i}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{][}\PYGdefault{n}{i}\PYGdefault{p}{]} \PYGdefault{o}{*} \PYGdefault{o}{\PYGdefaultZhy{}}\PYGdefault{l+m+mi}{1}\PYGdefault{p}{;}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Create a new matrix that consists of the operation register submatrix added to the left of the original one.}
+\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n+nf}{add\PYGdefaultZus{}operations\PYGdefaultZus{}register}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{original\PYGdefaultZus{}matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{new\PYGdefaultZus{}matrix}\PYGdefault{p}{;}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{j}\PYGdefault{p}{,} \PYGdefault{n}{new\PYGdefaultZus{}columns}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{new\PYGdefaultZus{}columns} \PYGdefault{o}{=} \PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;} \PYGdefault{c+c1}{// Number of rows added}
+
+  \PYGdefault{n}{new\PYGdefaultZus{}matrix} \PYGdefault{o}{=} \PYGdefault{n}{allocate\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{+} \PYGdefault{n}{new\PYGdefaultZus{}columns}\PYGdefault{p}{));}
+
+  \PYGdefault{c+c1}{// Set first row to 0}
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{new\PYGdefaultZus{}columns}\PYGdefault{p}{;} \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{n}{new\PYGdefaultZus{}matrix}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} 
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{c+c1}{// Adds the identity matrix in the correct position}
+  \PYGdefault{n}{insert\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{identity}\PYGdefault{p}{(}\PYGdefault{n}{new\PYGdefaultZus{}columns}\PYGdefault{p}{),} \PYGdefault{n}{new\PYGdefaultZus{}matrix}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{2}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{,} \PYGdefault{n}{new\PYGdefaultZus{}columns}\PYGdefault{p}{);} 
+
+  \PYGdefault{c+c1}{// Insert the original matrix as a submatrix of the new one}
+  \PYGdefault{n}{insert\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{original\PYGdefaultZus{}matrix}\PYGdefault{p}{,} \PYGdefault{n}{new\PYGdefaultZus{}matrix}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{+} \PYGdefault{n}{new\PYGdefaultZus{}columns}\PYGdefault{p}{));}
+
+  \PYGdefault{n}{free}\PYGdefault{p}{(}\PYGdefault{n}{original\PYGdefaultZus{}matrix}\PYGdefault{p}{);}
+
+  \PYGdefault{k}{return} \PYGdefault{n}{new\PYGdefaultZus{}matrix}\PYGdefault{p}{;}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Creates the auxiliar LP in the correct format}
+\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n+nf}{create\PYGdefaultZus{}auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{;}
+  \PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{copied\PYGdefaultZus{}matrix}\PYGdefault{p}{;}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{,} \PYGdefault{n}{j}\PYGdefault{p}{,} \PYGdefault{n}{auxiliar\PYGdefaultZus{}n}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{auxiliar\PYGdefaultZus{}n} \PYGdefault{o}{=} \PYGdefault{n}{n} \PYGdefault{o}{+} \PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;}
+  \PYGdefault{n}{auxiliar\PYGdefaultZus{}lp} \PYGdefault{o}{=} \PYGdefault{n}{allocate\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{auxiliar\PYGdefaultZus{}n}\PYGdefault{p}{);}
+
+  \PYGdefault{n}{copied\PYGdefaultZus{}matrix} \PYGdefault{o}{=} \PYGdefault{n}{allocate\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{);} 
+  \PYGdefault{c+c1}{// Holds the values of the original matrix but doesn\PYGdefaultZsq{}t mess with the original data in any sense}
+  \PYGdefault{n}{copy\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{n}{copied\PYGdefaultZus{}matrix}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{);} 
+
+  \PYGdefault{n}{make\PYGdefaultZus{}b\PYGdefaultZus{}non\PYGdefaultZus{}negative}\PYGdefault{p}{(}\PYGdefault{n}{copied\PYGdefaultZus{}matrix}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{);} \PYGdefault{c+c1}{// Makes b non negative before adding the new columns of the auxiliar LP}
+  
+  \PYGdefault{c+c1}{// Fulfill the auxiliar lp without the last column(thats why to\PYGdefaultZus{}column equals n \PYGdefaultZhy{} 1)}
+  \PYGdefault{n}{insert\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{copied\PYGdefaultZus{}matrix}\PYGdefault{p}{,} \PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{,} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{));}  
+
+  \PYGdefault{c+c1}{// Adds the last column to the auxiliar lp}
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{auxiliar\PYGdefaultZus{}n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{copied\PYGdefaultZus{}matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{];}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{c+c1}{// Creates the first row of the auxiliar LP with \PYGdefaultZhy{}1(1 in the tableau) above the new columns}
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{auxiliar\PYGdefaultZus{}n}\PYGdefault{p}{;} \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} 
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZgt{}=} \PYGdefault{p}{(}\PYGdefault{n}{auxiliar\PYGdefaultZus{}n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{n}{m}\PYGdefault{p}{)} \PYGdefault{o}{\PYGdefaultZam{}\PYGdefaultZam{}} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{p}{(}\PYGdefault{n}{auxiliar\PYGdefaultZus{}n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{))} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;}
+    \PYGdefault{p}{\PYGdefaultZcb{}} 
+    \PYGdefault{k}{else} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} 
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{c+c1}{// Adds the identity matrix below the 1\PYGdefaultZsq{}s in the first row}
+  \PYGdefault{n}{insert\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{identity}\PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{),} \PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{2}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{p}{(}\PYGdefault{n}{auxiliar\PYGdefaultZus{}n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{n}{m} \PYGdefault{o}{+} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{),} \PYGdefault{p}{(}\PYGdefault{n}{auxiliar\PYGdefaultZus{}n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{));} 
+
+  \PYGdefault{k}{return} \PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{;}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Check if b has any negative element}
+\PYGdefault{k+kt}{int} \PYGdefault{n+nf}{is\PYGdefaultZus{}b\PYGdefaultZus{}negative}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{;}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{]} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{k}{return} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{return} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// For rows where b is negative multiply the entire row by \PYGdefaultZhy{}1}
+\PYGdefault{k+kt}{void} \PYGdefault{n+nf}{make\PYGdefaultZus{}b\PYGdefaultZus{}non\PYGdefaultZus{}negative}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{;}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{]} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{operate\PYGdefaultZus{}on\PYGdefaultZus{}rows}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{n}{i}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{o}{\PYGdefaultZhy{}}\PYGdefault{l+m+mi}{1}\PYGdefault{p}{,} \PYGdefault{o}{\PYGdefaultZhy{}}\PYGdefault{l+m+mi}{1}\PYGdefault{p}{);}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Check if c is entirely positive(0 is positive)}
+\PYGdefault{k+kt}{int} \PYGdefault{n+nf}{is\PYGdefaultZus{}c\PYGdefaultZus{}positive}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{j}\PYGdefault{p}{;}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);} \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{k}{return} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{return} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+
+\PYGdefault{c+c1}{// Set the base to the default: Last (m \PYGdefaultZhy{} 1) columns of the A matrix}
+\PYGdefault{k+kt}{void} \PYGdefault{n+nf}{set\PYGdefaultZus{}initial\PYGdefaultZus{}base}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{k+kt}{int}\PYGdefault{o}{*} \PYGdefault{n}{base}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{b}\PYGdefault{p}{,} \PYGdefault{n}{i}\PYGdefault{p}{;}
+  \PYGdefault{n}{b} \PYGdefault{o}{=} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{));}
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{n}{base}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{b}\PYGdefault{p}{;}
+    \PYGdefault{n}{b}\PYGdefault{o}{++}\PYGdefault{p}{;}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Finds first non zero element on received column and returns it\PYGdefaultZsq{}s index}
+\PYGdefault{k+kt}{int} \PYGdefault{n+nf}{find\PYGdefaultZus{}non\PYGdefaultZus{}zero\PYGdefaultZus{}element}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{column}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{;}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{column}\PYGdefault{p}{]} \PYGdefault{o}{!=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{k}{return} \PYGdefault{n}{i}\PYGdefault{p}{;}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{return} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Format the LP to the Canonical Form}
+\PYGdefault{k+kt}{void} \PYGdefault{n+nf}{format\PYGdefaultZus{}canonical}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{k+kt}{int}\PYGdefault{o}{*} \PYGdefault{n}{base}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{,} \PYGdefault{n}{j}\PYGdefault{p}{;}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Goes through all the basic columns}
+    \PYGdefault{c+c1}{// If the row for the base is 0, find other row on the same column that can make the first one != 0}
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i} \PYGdefault{o}{+} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{][}\PYGdefault{n}{base}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]]} \PYGdefault{o}{==} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} 
+      \PYGdefault{n}{operate\PYGdefaultZus{}on\PYGdefaultZus{}rows}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{p}{(}\PYGdefault{n}{find\PYGdefaultZus{}non\PYGdefaultZus{}zero\PYGdefaultZus{}element}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{base}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{])),} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{,} \PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{+} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{));}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i} \PYGdefault{o}{+} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{][}\PYGdefault{n}{base}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]]} \PYGdefault{o}{!=} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Make element equals 1}
+      \PYGdefault{n}{operate\PYGdefaultZus{}on\PYGdefaultZus{}rows}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{+} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{),} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{p}{(}\PYGdefault{l+m+mi}{1} \PYGdefault{o}{/} \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i} \PYGdefault{o}{+} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{][}\PYGdefault{n}{base}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]]),} \PYGdefault{o}{\PYGdefaultZhy{}}\PYGdefault{l+m+mi}{1}\PYGdefault{p}{);}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Make all the other elements in that column equals 0}
+      \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{!=} \PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{+} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{))} \PYGdefault{p}{\PYGdefaultZob{}} 
+        \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{j}\PYGdefault{p}{][}\PYGdefault{n}{base}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]]} \PYGdefault{o}{!=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+          \PYGdefault{n}{operate\PYGdefaultZus{}on\PYGdefaultZus{}rows}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{+} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{),} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{p}{(}\PYGdefault{o}{\PYGdefaultZhy{}}\PYGdefault{l+m+mi}{1} \PYGdefault{o}{*} \PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{j}\PYGdefault{p}{][}\PYGdefault{n}{base}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]]} \PYGdefault{o}{/} \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i} \PYGdefault{o}{+} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{][}\PYGdefault{n}{base}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]])),} \PYGdefault{n}{j}\PYGdefault{p}{);}
+        \PYGdefault{p}{\PYGdefaultZcb{}}
+      \PYGdefault{p}{\PYGdefaultZcb{}} 
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Returns if LP is unbounded(column number), optimal(\PYGdefaultZhy{}1) or if we need one more round of simplex(0).}
+\PYGdefault{c+c1}{// Uses Bland\PYGdefaultZsq{}s Rule to prevent loops. Pass the row and column of the base by reference}
+\PYGdefault{k+kt}{int} \PYGdefault{n+nf}{primal\PYGdefaultZus{}next\PYGdefaultZus{}base}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{k+kt}{int}\PYGdefault{o}{*} \PYGdefault{n}{base\PYGdefaultZus{}row}\PYGdefault{p}{,} \PYGdefault{k+kt}{int}\PYGdefault{o}{*} \PYGdefault{n}{base\PYGdefaultZus{}column}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{,} \PYGdefault{n}{j}\PYGdefault{p}{;}
+  \PYGdefault{k+kt}{double} \PYGdefault{n}{min\PYGdefaultZus{}ratio}\PYGdefault{p}{,} \PYGdefault{n}{row\PYGdefaultZus{}ratio}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{min\PYGdefaultZus{}ratio} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{999999}\PYGdefault{p}{;}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);} \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Skips the operation register columns}
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Chooses the first negative element in the first row}
+      \PYGdefault{o}{*}\PYGdefault{n}{base\PYGdefaultZus{}column} \PYGdefault{o}{=} \PYGdefault{n}{j}\PYGdefault{p}{;}
+      \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{c+c1}{// b will never be negative after primal simplex starts to run, so,}
+        \PYGdefault{c+c1}{// for a valid ratio, we need a positive number that is not zero}
+        \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{\PYGdefaultZgt{}} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+          \PYGdefault{n}{row\PYGdefaultZus{}ratio} \PYGdefault{o}{=} \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{]} \PYGdefault{o}{/} \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{];}
+          \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{row\PYGdefaultZus{}ratio} \PYGdefault{o}{\PYGdefaultZlt{}=} \PYGdefault{n}{min\PYGdefaultZus{}ratio} \PYGdefault{o}{+} \PYGdefault{n}{EPSILON}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}  
+            \PYGdefault{n}{min\PYGdefaultZus{}ratio} \PYGdefault{o}{=} \PYGdefault{n}{row\PYGdefaultZus{}ratio}\PYGdefault{p}{;}
+            \PYGdefault{o}{*}\PYGdefault{n}{base\PYGdefaultZus{}row} \PYGdefault{o}{=} \PYGdefault{n}{i}\PYGdefault{p}{;} \PYGdefault{c+c1}{// Chooses row with minimum ratio in that column}
+          \PYGdefault{p}{\PYGdefaultZcb{}}
+        \PYGdefault{p}{\PYGdefaultZcb{}}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+      \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{min\PYGdefaultZus{}ratio} \PYGdefault{o}{==} \PYGdefault{l+m+mi}{999999}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{k}{return} \PYGdefault{n}{j}\PYGdefault{p}{;} \PYGdefault{c+c1}{// LP is unbounded}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+      \PYGdefault{k}{else} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{k}{return} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{c+c1}{// Goes to the next round of simplex}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{return} \PYGdefault{o}{\PYGdefaultZhy{}}\PYGdefault{l+m+mi}{1}\PYGdefault{p}{;} \PYGdefault{c+c1}{// LP is optimal}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// If return == \PYGdefaultZhy{}1 the LP is optimal and if return \PYGdefaultZgt{} 0 it\PYGdefaultZsq{}s unbounded. In the last case,}
+\PYGdefault{c+c1}{// the return value equals the column where we can get the certificate of unboundedness}
+\PYGdefault{k+kt}{int} \PYGdefault{n+nf}{primal\PYGdefaultZus{}simplex}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{k+kt}{int}\PYGdefault{o}{*} \PYGdefault{n}{base}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{print\PYGdefaultZus{}output}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}  
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{result}\PYGdefault{p}{,} \PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}row}\PYGdefault{p}{,} \PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}column}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{make\PYGdefaultZus{}b\PYGdefaultZus{}non\PYGdefaultZus{}negative}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{);}
+
+  \PYGdefault{k}{while}\PYGdefault{p}{(}\PYGdefault{l+m+mi}{1}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+
+    \PYGdefault{c+c1}{// Reset variables to prevent garbage}
+    \PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}row} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+    \PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}column} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+
+    \PYGdefault{c+c1}{// First we need to present the LP in the canonical form}
+    \PYGdefault{n}{format\PYGdefaultZus{}canonical}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{n}{base}\PYGdefault{p}{);}
+
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{print\PYGdefaultZus{}output}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Print the current tableau if flag is set}
+      \PYGdefault{n}{print\PYGdefaultZus{}output\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{);}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+
+    \PYGdefault{c+c1}{// Find the next base for the primal simplex}
+    \PYGdefault{n}{result} \PYGdefault{o}{=} \PYGdefault{n}{primal\PYGdefaultZus{}next\PYGdefaultZus{}base}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{o}{\PYGdefaultZam{}}\PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}row}\PYGdefault{p}{,} \PYGdefault{o}{\PYGdefaultZam{}}\PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}column}\PYGdefault{p}{);}
+
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{result} \PYGdefault{o}{!=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// If LP is optimal or unbounded}
+      \PYGdefault{k}{return} \PYGdefault{n}{result}\PYGdefault{p}{;}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+
+    \PYGdefault{n}{base}\PYGdefault{p}{[}\PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}row} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}column}\PYGdefault{p}{;} \PYGdefault{c+c1}{// Adds chosen column to the base}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+
+\PYGdefault{c+c1}{// Returns if LP is unbounded(column number), optimal(\PYGdefaultZhy{}1) or if we need one more round of simplex(0).}
+\PYGdefault{c+c1}{// Uses Bland\PYGdefaultZsq{}s Rule to prevent loops. Pass the row and column of the base by reference}
+\PYGdefault{k+kt}{int} \PYGdefault{n+nf}{dual\PYGdefaultZus{}next\PYGdefaultZus{}base}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{k+kt}{int}\PYGdefault{o}{*} \PYGdefault{n}{base\PYGdefaultZus{}row}\PYGdefault{p}{,} \PYGdefault{k+kt}{int}\PYGdefault{o}{*} \PYGdefault{n}{base\PYGdefaultZus{}column}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{,} \PYGdefault{n}{j}\PYGdefault{p}{;}
+  \PYGdefault{k+kt}{double} \PYGdefault{n}{min\PYGdefaultZus{}ratio}\PYGdefault{p}{,} \PYGdefault{n}{row\PYGdefaultZus{}ratio}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{min\PYGdefaultZus{}ratio} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{999999}\PYGdefault{p}{;}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{m}\PYGdefault{p}{;} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{]} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{o}{*}\PYGdefault{n}{base\PYGdefaultZus{}row} \PYGdefault{o}{=} \PYGdefault{n}{i}\PYGdefault{p}{;}
+      \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{j} \PYGdefault{o}{=} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);} \PYGdefault{n}{j} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);} \PYGdefault{n}{j}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+          \PYGdefault{n}{row\PYGdefaultZus{}ratio} \PYGdefault{o}{=} \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]} \PYGdefault{o}{/} \PYGdefault{p}{(}\PYGdefault{o}{\PYGdefaultZhy{}}\PYGdefault{l+m+mi}{1} \PYGdefault{o}{*} \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{][}\PYGdefault{n}{j}\PYGdefault{p}{]);}
+          \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{row\PYGdefaultZus{}ratio} \PYGdefault{o}{\PYGdefaultZgt{}=} \PYGdefault{l+m+mi}{0} \PYGdefault{o}{\PYGdefaultZam{}\PYGdefaultZam{}} \PYGdefault{n}{row\PYGdefaultZus{}ratio} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{n}{min\PYGdefaultZus{}ratio}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+            \PYGdefault{n}{min\PYGdefaultZus{}ratio} \PYGdefault{o}{=} \PYGdefault{n}{row\PYGdefaultZus{}ratio}\PYGdefault{p}{;}
+            \PYGdefault{o}{*}\PYGdefault{n}{base\PYGdefaultZus{}column} \PYGdefault{o}{=} \PYGdefault{n}{j}\PYGdefault{p}{;}
+          \PYGdefault{p}{\PYGdefaultZcb{}}
+        \PYGdefault{p}{\PYGdefaultZcb{}}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+      \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{min\PYGdefaultZus{}ratio} \PYGdefault{o}{==} \PYGdefault{l+m+mi}{999999}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{k}{return} \PYGdefault{n}{j}\PYGdefault{p}{;} \PYGdefault{c+c1}{// LP is unbounded}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+      \PYGdefault{k}{else} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{k}{return} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{c+c1}{// Goes to the next round of simplex}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{return} \PYGdefault{o}{\PYGdefaultZhy{}}\PYGdefault{l+m+mi}{1}\PYGdefault{p}{;} \PYGdefault{c+c1}{// LP is optimal}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// If return == \PYGdefaultZhy{}1 the LP is optimal and if return \PYGdefaultZgt{} 0 it\PYGdefaultZsq{}s unbounded. In the last case,}
+\PYGdefault{c+c1}{// the return value equals the column where we can get the certificate of unboundedness}
+\PYGdefault{k+kt}{int} \PYGdefault{n+nf}{dual\PYGdefaultZus{}simplex}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{k+kt}{int}\PYGdefault{o}{*} \PYGdefault{n}{base}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{print\PYGdefaultZus{}output}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{result}\PYGdefault{p}{,} \PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}row}\PYGdefault{p}{,} \PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}column}\PYGdefault{p}{;}
+
+  \PYGdefault{k}{while}\PYGdefault{p}{(}\PYGdefault{l+m+mi}{1}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+
+    \PYGdefault{c+c1}{// Reset variables to prevent garbage}
+    \PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}row} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+    \PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}column} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+
+    \PYGdefault{c+c1}{// First we need to present the LP in the canonical form}
+    \PYGdefault{n}{format\PYGdefaultZus{}canonical}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{n}{base}\PYGdefault{p}{);}
+
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{print\PYGdefaultZus{}output}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Print the current tableau if flag is set}
+      \PYGdefault{n}{print\PYGdefaultZus{}output\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{);}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+
+    \PYGdefault{c+c1}{// Find the next base for the primal simplex}
+    \PYGdefault{n}{result} \PYGdefault{o}{=} \PYGdefault{n}{dual\PYGdefaultZus{}next\PYGdefaultZus{}base}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{o}{\PYGdefaultZam{}}\PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}row}\PYGdefault{p}{,} \PYGdefault{o}{\PYGdefaultZam{}}\PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}column}\PYGdefault{p}{);}
+
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{result} \PYGdefault{o}{!=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// If LP is optimal or unbounded}
+      \PYGdefault{k}{return} \PYGdefault{n}{result}\PYGdefault{p}{;}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+
+    \PYGdefault{n}{base}\PYGdefault{p}{[}\PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}row} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{new\PYGdefaultZus{}base\PYGdefaultZus{}column}\PYGdefault{p}{;} \PYGdefault{c+c1}{// Adds chosen column to the base}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Extract solution from optimal LP based in the base of columns}
+\PYGdefault{k+kt}{double}\PYGdefault{o}{*} \PYGdefault{n+nf}{get\PYGdefaultZus{}primal\PYGdefaultZus{}optimal\PYGdefaultZus{}solution}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{k+kt}{int}\PYGdefault{o}{*} \PYGdefault{n}{base}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{double}\PYGdefault{o}{*} \PYGdefault{n}{vector}\PYGdefault{p}{;}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{vector} \PYGdefault{o}{=} \PYGdefault{n}{malloc}\PYGdefault{p}{((}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{))} \PYGdefault{o}{*} \PYGdefault{k}{sizeof}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{p}{));}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{));} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Solution is zero in columns that are not in the base}
+    \PYGdefault{n}{vector}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{c+c1}{// Assigns the value of b to the columns in the solution that correspond to the columns in the base}
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{n}{vector}\PYGdefault{p}{[}\PYGdefault{n}{base}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{)]}  \PYGdefault{o}{=} \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i} \PYGdefault{o}{+} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{][}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{];}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{return} \PYGdefault{n}{vector}\PYGdefault{p}{;}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{c+c1}{// Extract dual optimal solution which can be used as infeasibility or optimality certificates}
+\PYGdefault{k+kt}{double}\PYGdefault{o}{*} \PYGdefault{n+nf}{get\PYGdefaultZus{}dual\PYGdefaultZus{}optimal\PYGdefaultZus{}solution}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{double}\PYGdefault{o}{*} \PYGdefault{n}{vector}\PYGdefault{p}{;}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{vector} \PYGdefault{o}{=} \PYGdefault{n}{malloc}\PYGdefault{p}{((}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{)} \PYGdefault{o}{*} \PYGdefault{k}{sizeof}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{p}{));}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Group the elements of the operations register that are in the first row}
+    \PYGdefault{n}{vector}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{][}\PYGdefault{n}{i}\PYGdefault{p}{];}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{return} \PYGdefault{n}{vector}\PYGdefault{p}{;}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+
+\PYGdefault{k+kt}{double}\PYGdefault{o}{*} \PYGdefault{n+nf}{generate\PYGdefaultZus{}unboundedness\PYGdefaultZus{}certificate}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{matrix}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{k+kt}{int} \PYGdefault{n}{column}\PYGdefault{p}{,} \PYGdefault{k+kt}{int}\PYGdefault{o}{*} \PYGdefault{n}{base}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{k+kt}{double}\PYGdefault{o}{*} \PYGdefault{n}{vector}\PYGdefault{p}{;}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{i}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{vector} \PYGdefault{o}{=} \PYGdefault{n}{malloc}\PYGdefault{p}{((}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{))} \PYGdefault{o}{*} \PYGdefault{k}{sizeof}\PYGdefault{p}{(}\PYGdefault{k+kt}{double}\PYGdefault{p}{));}
+
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{));} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{n}{vector}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{c+c1}{// Column that shows unboundedness will be 1 to make it easier to create the rest of the certificate}
+  \PYGdefault{n}{vector}\PYGdefault{p}{[}\PYGdefault{n}{column} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{)]} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;}
+
+  \PYGdefault{c+c1}{// Assigns the value of \PYGdefaultZhy{}1 * element in the \PYGdefaultZdq{}unbounded column\PYGdefaultZdq{} to the columns  }
+  \PYGdefault{c+c1}{// in the certificate that correspond to the columns in the base}
+  \PYGdefault{k}{for}\PYGdefault{p}{(}\PYGdefault{n}{i} \PYGdefault{o}{=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;} \PYGdefault{n}{i} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);} \PYGdefault{n}{i}\PYGdefault{o}{++}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i} \PYGdefault{o}{+} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{][}\PYGdefault{n}{column}\PYGdefault{p}{]} \PYGdefault{o}{!=} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+      \PYGdefault{n}{vector}\PYGdefault{p}{[}\PYGdefault{n}{base}\PYGdefault{p}{[}\PYGdefault{n}{i}\PYGdefault{p}{]} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{)]} \PYGdefault{o}{=} \PYGdefault{o}{\PYGdefaultZhy{}}\PYGdefault{l+m+mi}{1} \PYGdefault{o}{*} \PYGdefault{n}{matrix}\PYGdefault{p}{[}\PYGdefault{n}{i} \PYGdefault{o}{+} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{][}\PYGdefault{n}{column}\PYGdefault{p}{];}
+    \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{return} \PYGdefault{n}{vector}\PYGdefault{p}{;}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+\end{Verbatim}

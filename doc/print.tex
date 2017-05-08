@@ -1,0 +1,36 @@
+\documentclass[6pt]{article}
+
+% Encoding
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\usepackage{csquotes}
+\setdefaultlanguage{english}
+
+% Formatting
+\usepackage{fullpage}
+\usepackage{graphicx}
+\usepackage[final]{microtype}
+\usepackage{tabulary}
+
+% References
+\usepackage{biblatex}
+\addbibresource{refs.bib}
+
+% Other
+\usepackage{hyperref}
+\usepackage{minted}
+
+\title{TP1 Pesquisa Operacional}
+\author{João Francisco Barreto da Silva Martins}
+
+\begin{document}
+\maketitle
+
+\textbf{simplex.c}
+\inputminted[frame=lines,linenos,baselinestretch=1,fontsize=\footnotesize]{c++}{../simplex.c}
+\textbf{lalgebra.h}
+\inputminted[frame=lines,linenos,baselinestretch=1,fontsize=\footnotesize]{c++}{../lalgebra.h}
+\textbf{lalgebra.c}
+\inputminted[frame=lines,linenos,baselinestretch=1,fontsize=\footnotesize]{c++}{../lalgebra.c}
+
+\end{document}

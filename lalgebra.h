@@ -1,4 +1,4 @@
-/* Linear Algebra Library
+/* Linear Algebra and Simplex Algorithms Library
  * Developed by Joao Francisco B. S. Martins <joaofbsm@dcc.ufmg.br>
  */
 
@@ -27,8 +27,7 @@ double** create_auxiliar_lp(double** matrix, int m, int n);
 
 int is_b_negative(double** matrix, int m, int n);
 void make_b_non_negative(double** matrix, int m, int n);
-int is_c_negative(double** matrix, int m, int n);
-void make_c_non_negative(double** matrix, int m, int n);
+int is_c_positive(double** matrix, int m, int n);
 
 void set_initial_base(double** matrix, int m, int n, int* base);
 

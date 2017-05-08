@@ -1,0 +1,154 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYGdefault{c+cm}{/* Simplex Solver}
+\PYGdefault{c+cm}{ * Developed by Joao Francisco B. S. Martins \PYGdefaultZlt{}joaofbsm@dcc.ufmg.br\PYGdefaultZgt{}}
+\PYGdefault{c+cm}{ */}
+
+\PYGdefault{c+cp}{\PYGdefaultZsh{}include} \PYGdefault{c+cpf}{\PYGdefaultZlt{}stdio.h\PYGdefaultZgt{}}
+\PYGdefault{c+cp}{\PYGdefaultZsh{}include} \PYGdefault{c+cpf}{\PYGdefaultZlt{}stdlib.h\PYGdefaultZgt{}}
+\PYGdefault{c+cp}{\PYGdefaultZsh{}include} \PYGdefault{c+cpf}{\PYGdefaultZlt{}string.h\PYGdefaultZgt{}}
+\PYGdefault{c+cp}{\PYGdefaultZsh{}include} \PYGdefault{c+cpf}{\PYGdefaultZlt{}math.h\PYGdefaultZgt{}}
+\PYGdefault{c+cp}{\PYGdefaultZsh{}include} \PYGdefault{c+cpf}{\PYGdefaultZlt{}ctype.h\PYGdefaultZgt{}}
+
+\PYGdefault{c+cp}{\PYGdefaultZsh{}include} \PYGdefault{c+cpf}{\PYGdefaultZdq{}lalgebra.h\PYGdefaultZdq{}}
+
+\PYGdefault{k+kt}{int} \PYGdefault{n+nf}{main}\PYGdefault{p}{(}\PYGdefault{k+kt}{int} \PYGdefault{n}{argc}\PYGdefault{p}{,} \PYGdefault{k+kt}{char}\PYGdefault{o}{*} \PYGdefault{n}{argv}\PYGdefault{p}{[])} \PYGdefault{p}{\PYGdefaultZob{}}
+  \PYGdefault{c+c1}{// Linear Programming represented as a matrix similar to the tableau}
+  \PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{lp}\PYGdefault{p}{;} 
+
+  \PYGdefault{c+c1}{// Auxiliar LP built upon the original LP}
+  \PYGdefault{k+kt}{double}\PYGdefault{o}{**} \PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{;}
+
+  \PYGdefault{c+c1}{// Bases are column numbers ordered by rows. If a column contains the base for the first }
+  \PYGdefault{c+c1}{// restriction(first row of A), it is going to be on the first index of base and so forth}
+  \PYGdefault{k+kt}{int}\PYGdefault{o}{*} \PYGdefault{n}{base}\PYGdefault{p}{;} 
+
+  \PYGdefault{c+c1}{// m and n are the dimensions of the LP. auxiliar\PYGdefaultZus{}n is the columns dimension for the auxiliar\PYGdefaultZus{}lp. }
+  \PYGdefault{c+c1}{// mode is the mode chosen by the user. simplex\PYGdefaultZus{}result is the return value of the simplex algorithms}
+  \PYGdefault{k+kt}{int} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{n}{auxiliar\PYGdefaultZus{}n}\PYGdefault{p}{,} \PYGdefault{n}{mode}\PYGdefault{p}{,} \PYGdefault{n}{simplex\PYGdefaultZus{}result}\PYGdefault{p}{;}
+
+  \PYGdefault{c+c1}{// User choice for primal or dual simplex in mode 2}
+  \PYGdefault{k+kt}{char} \PYGdefault{n}{simplex\PYGdefaultZus{}type}\PYGdefault{p}{;} 
+
+  \PYGdefault{c+c1}{// Receive and discard the string \PYGdefaultZdq{}modo\PYGdefaultZdq{}. We make this to facilitate the parsing}
+  \PYGdefault{k+kt}{char} \PYGdefault{n}{string\PYGdefaultZus{}modo}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{4}\PYGdefault{p}{];}
+
+  \PYGdefault{c+c1}{// Input file}
+  \PYGdefault{k+kt}{FILE}\PYGdefault{o}{*} \PYGdefault{n}{input}\PYGdefault{p}{;} 
+  \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{argc} \PYGdefault{o}{\PYGdefaultZgt{}=} \PYGdefault{l+m+mi}{2}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Input file name has been given}
+     \PYGdefault{n}{input} \PYGdefault{o}{=} \PYGdefault{n}{fopen}\PYGdefault{p}{(}\PYGdefault{n}{argv}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{1}\PYGdefault{p}{],} \PYGdefault{l+s}{\PYGdefaultZdq{}r+\PYGdefaultZdq{}}\PYGdefault{p}{);}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+  \PYGdefault{k}{else} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// Default input file name}
+    \PYGdefault{n}{input} \PYGdefault{o}{=} \PYGdefault{n}{fopen}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}input.txt\PYGdefaultZdq{}}\PYGdefault{p}{,} \PYGdefault{l+s}{\PYGdefaultZdq{}r+\PYGdefaultZdq{}}\PYGdefault{p}{);}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{c+c1}{// Gets the modus operandi}
+  \PYGdefault{n}{fscanf}\PYGdefault{p}{(}\PYGdefault{n}{input}\PYGdefault{p}{,} \PYGdefault{l+s}{\PYGdefaultZdq{}\PYGdefaultZpc{}s \PYGdefaultZpc{}d\PYGdefaultZdq{}}\PYGdefault{p}{,} \PYGdefault{n}{string\PYGdefaultZus{}modo}\PYGdefault{p}{,} \PYGdefault{o}{\PYGdefaultZam{}}\PYGdefault{n}{mode}\PYGdefault{p}{);}
+
+  \PYGdefault{c+c1}{// Primal or dual simplex}
+  \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{mode} \PYGdefault{o}{==} \PYGdefault{l+m+mi}{2}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} 
+    \PYGdefault{n}{fscanf}\PYGdefault{p}{(}\PYGdefault{n}{input}\PYGdefault{p}{,} \PYGdefault{l+s}{\PYGdefaultZdq{} \PYGdefaultZpc{}c\PYGdefaultZdq{}}\PYGdefault{p}{,} \PYGdefault{o}{\PYGdefaultZam{}}\PYGdefault{n}{simplex\PYGdefaultZus{}type}\PYGdefault{p}{);} 
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{n}{fscanf}\PYGdefault{p}{(}\PYGdefault{n}{input}\PYGdefault{p}{,} \PYGdefault{l+s}{\PYGdefaultZdq{}\PYGdefaultZpc{}d \PYGdefaultZpc{}d \PYGdefaultZdq{}}\PYGdefault{p}{,} \PYGdefault{o}{\PYGdefaultZam{}}\PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{o}{\PYGdefaultZam{}}\PYGdefault{n}{n}\PYGdefault{p}{);} \PYGdefault{c+c1}{// Reads LP dimensions}
+  \PYGdefault{n}{m} \PYGdefault{o}{+=} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;} \PYGdefault{c+c1}{// Adjust m so it corresponds to the tableau dimensions}
+  \PYGdefault{n}{n} \PYGdefault{o}{+=} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;} \PYGdefault{c+c1}{// Adjust n so it corresponds to the tableau dimensions}
+  \PYGdefault{n}{lp} \PYGdefault{o}{=} \PYGdefault{n}{allocate\PYGdefaultZus{}matrix}\PYGdefault{p}{(}\PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{);} \PYGdefault{c+c1}{// Allocate memory for matrix of dimensions m x n}
+  \PYGdefault{n}{parse\PYGdefaultZus{}input}\PYGdefault{p}{(}\PYGdefault{n}{input}\PYGdefault{p}{,} \PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{);} \PYGdefault{c+c1}{// Fill the allocated matrix with the input}
+
+  \PYGdefault{n}{lp} \PYGdefault{o}{=} \PYGdefault{n}{format\PYGdefaultZus{}sef}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{);} \PYGdefault{c+c1}{// Adds the slack variables for the problem by formating it to the standard equalities form   }
+  \PYGdefault{n}{n} \PYGdefault{o}{+=} \PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;} \PYGdefault{c+c1}{// (m \PYGdefaultZhy{} 1) columns were added to the matrix}
+
+  \PYGdefault{n}{format\PYGdefaultZus{}tableau}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{);} \PYGdefault{c+c1}{// Negates the first row for the tableau}
+
+  \PYGdefault{n}{lp} \PYGdefault{o}{=} \PYGdefault{n}{add\PYGdefaultZus{}operations\PYGdefaultZus{}register}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{);} \PYGdefault{c+c1}{// Adds the operation register matrix to the left of the LP}
+  \PYGdefault{n}{n} \PYGdefault{o}{+=} \PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;}
+
+  \PYGdefault{n}{auxiliar\PYGdefaultZus{}lp} \PYGdefault{o}{=} \PYGdefault{n+nb}{NULL}\PYGdefault{p}{;}
+  \PYGdefault{c+c1}{// Base will always be a vector with (m \PYGdefaultZhy{} 1) columns because this is the rank of the matrix}
+  \PYGdefault{n}{base} \PYGdefault{o}{=} \PYGdefault{n}{malloc}\PYGdefault{p}{((}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{)} \PYGdefault{o}{*} \PYGdefault{k}{sizeof}\PYGdefault{p}{(}\PYGdefault{k+kt}{int}\PYGdefault{p}{));} 
+
+  \PYGdefault{k}{switch}\PYGdefault{p}{(}\PYGdefault{n}{mode}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+    \PYGdefault{k}{case} \PYGdefault{l+m+mi}{1}\PYGdefault{o}{:}
+      \PYGdefault{n}{auxiliar\PYGdefaultZus{}lp} \PYGdefault{o}{=} \PYGdefault{n}{create\PYGdefaultZus{}auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{);} 
+      \PYGdefault{n}{auxiliar\PYGdefaultZus{}n} \PYGdefault{o}{=} \PYGdefault{n}{n} \PYGdefault{o}{+} \PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;} \PYGdefault{c+c1}{// Auxiliar LP creates (m \PYGdefaultZhy{} 1) new columns in A}
+
+      \PYGdefault{n}{set\PYGdefaultZus{}initial\PYGdefaultZus{}base}\PYGdefault{p}{(}\PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{auxiliar\PYGdefaultZus{}n}\PYGdefault{p}{,} \PYGdefault{n}{base}\PYGdefault{p}{);} \PYGdefault{c+c1}{// Set the initial base for the auxiliar LP}
+
+      \PYGdefault{n}{primal\PYGdefaultZus{}simplex}\PYGdefault{p}{(}\PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{auxiliar\PYGdefaultZus{}n}\PYGdefault{p}{,} \PYGdefault{n}{base}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{);} \PYGdefault{c+c1}{// Runs simplex for Auxiliar LP but doesn\PYGdefaultZsq{}t print the output}
+
+      \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{][}\PYGdefault{n}{auxiliar\PYGdefaultZus{}n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{]} \PYGdefault{o}{\PYGdefaultZlt{}} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// LP is infeasible}
+        \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}PL inviável, aqui está um certificado \PYGdefaultZdq{}}\PYGdefault{p}{);}
+        \PYGdefault{c+c1}{// The optimal solution for the dual of the auxiliar LP is a certificate of infeasibility for the original LP}
+        \PYGdefault{n}{print\PYGdefaultZus{}output\PYGdefaultZus{}vector}\PYGdefault{p}{(}\PYGdefault{n}{get\PYGdefaultZus{}dual\PYGdefaultZus{}optimal\PYGdefaultZus{}solution}\PYGdefault{p}{(}\PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{),} \PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);}
+        \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}}\PYGdefault{l+s+se}{\PYGdefaultZbs{}n}\PYGdefault{l+s}{\PYGdefaultZdq{}}\PYGdefault{p}{);}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+      \PYGdefault{k}{else} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{c+c1}{// The base now is the final base of the auxiliar LP, which is a good one to begin the simplex with}
+        \PYGdefault{n}{simplex\PYGdefaultZus{}result} \PYGdefault{o}{=} \PYGdefault{n}{primal\PYGdefaultZus{}simplex}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{n}{base}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{);}
+
+        \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{simplex\PYGdefaultZus{}result} \PYGdefault{o}{\PYGdefaultZgt{}} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// LP is unbounded}
+          \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}PL ilimitada, aqui está um certificado \PYGdefaultZdq{}}\PYGdefault{p}{);}
+          \PYGdefault{n}{print\PYGdefaultZus{}output\PYGdefaultZus{}vector}\PYGdefault{p}{(}\PYGdefault{n}{generate\PYGdefaultZus{}unboundedness\PYGdefaultZus{}certificate}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{n}{simplex\PYGdefaultZus{}result}\PYGdefault{p}{,} \PYGdefault{n}{base}\PYGdefault{p}{),} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{)} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{)));}
+          \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}}\PYGdefault{l+s+se}{\PYGdefaultZbs{}n}\PYGdefault{l+s}{\PYGdefaultZdq{}}\PYGdefault{p}{);}
+        \PYGdefault{p}{\PYGdefaultZcb{}} 
+        \PYGdefault{k}{else} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// LP is optimal}
+          \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}Solução ótima x = \PYGdefaultZdq{}}\PYGdefault{p}{);}
+          \PYGdefault{n}{print\PYGdefaultZus{}output\PYGdefaultZus{}vector}\PYGdefault{p}{(}\PYGdefault{n}{get\PYGdefaultZus{}primal\PYGdefaultZus{}optimal\PYGdefaultZus{}solution}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{n}{base}\PYGdefault{p}{),} \PYGdefault{p}{(}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{)} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{p}{(}\PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{)));}
+          \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}, com valor objetivo \PYGdefaultZpc{}g, e solução dual y = \PYGdefaultZdq{}}\PYGdefault{p}{,} \PYGdefault{n}{round}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{[}\PYGdefault{l+m+mi}{0}\PYGdefault{p}{][}\PYGdefault{n}{n} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{]} \PYGdefault{o}{*} \PYGdefault{l+m+mi}{100000}\PYGdefault{p}{)} \PYGdefault{o}{/} \PYGdefault{l+m+mi}{100000}\PYGdefault{p}{);}
+          \PYGdefault{n}{print\PYGdefaultZus{}output\PYGdefaultZus{}vector}\PYGdefault{p}{(}\PYGdefault{n}{get\PYGdefaultZus{}dual\PYGdefaultZus{}optimal\PYGdefaultZus{}solution}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{),} \PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);}
+          \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}}\PYGdefault{l+s+se}{\PYGdefaultZbs{}n}\PYGdefault{l+s}{\PYGdefaultZdq{}}\PYGdefault{p}{);}
+        \PYGdefault{p}{\PYGdefaultZcb{}}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{k}{break}\PYGdefault{p}{;}
+
+    \PYGdefault{k}{case} \PYGdefault{l+m+mi}{2}\PYGdefault{o}{:}
+
+      \PYGdefault{k}{switch}\PYGdefault{p}{(}\PYGdefault{n}{simplex\PYGdefaultZus{}type}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}}
+        \PYGdefault{k}{case} \PYGdefault{l+s+sc}{\PYGdefaultZsq{}P\PYGdefaultZsq{}}\PYGdefault{o}{:}
+          \PYGdefault{c+c1}{// If b has some negative entry, use auxiliar LP to find a good base of columns to start the simplex with}
+          \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{is\PYGdefaultZus{}b\PYGdefaultZus{}negative}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{))} \PYGdefault{p}{\PYGdefaultZob{}} 
+            \PYGdefault{n}{auxiliar\PYGdefaultZus{}lp} \PYGdefault{o}{=} \PYGdefault{n}{create\PYGdefaultZus{}auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{);}
+            \PYGdefault{n}{auxiliar\PYGdefaultZus{}n} \PYGdefault{o}{=} \PYGdefault{n}{n} \PYGdefault{o}{+} \PYGdefault{n}{m} \PYGdefault{o}{\PYGdefaultZhy{}} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{;}
+            \PYGdefault{n}{set\PYGdefaultZus{}initial\PYGdefaultZus{}base}\PYGdefault{p}{(}\PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{auxiliar\PYGdefaultZus{}n}\PYGdefault{p}{,} \PYGdefault{n}{base}\PYGdefault{p}{);}
+            \PYGdefault{n}{primal\PYGdefaultZus{}simplex}\PYGdefault{p}{(}\PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{auxiliar\PYGdefaultZus{}n}\PYGdefault{p}{,} \PYGdefault{n}{base}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{);}
+          \PYGdefault{p}{\PYGdefaultZcb{}}
+          \PYGdefault{k}{else} \PYGdefault{p}{\PYGdefaultZob{}}
+            \PYGdefault{c+c1}{// Set base columns to the slack variables}
+            \PYGdefault{n}{set\PYGdefaultZus{}initial\PYGdefaultZus{}base}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{n}{base}\PYGdefault{p}{);}
+          \PYGdefault{p}{\PYGdefaultZcb{}}
+
+          \PYGdefault{n}{simplex\PYGdefaultZus{}result} \PYGdefault{o}{=} \PYGdefault{n}{primal\PYGdefaultZus{}simplex}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{n}{base}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);}
+        \PYGdefault{k}{break}\PYGdefault{p}{;}
+
+        \PYGdefault{k}{case} \PYGdefault{l+s+sc}{\PYGdefaultZsq{}D\PYGdefaultZsq{}}\PYGdefault{o}{:}
+          \PYGdefault{c+c1}{// We can only run the dual simplex if we have a positive c vector in the tableau.}
+          \PYGdefault{c+c1}{// That is not entirely true, but for the scope of this assignment it will}
+          \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{is\PYGdefaultZus{}c\PYGdefaultZus{}positive}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{))} \PYGdefault{p}{\PYGdefaultZob{}}
+            \PYGdefault{n}{set\PYGdefaultZus{}initial\PYGdefaultZus{}base}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{n}{base}\PYGdefault{p}{);}
+            \PYGdefault{n}{simplex\PYGdefaultZus{}result} \PYGdefault{o}{=} \PYGdefault{n}{dual\PYGdefaultZus{}simplex}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{,} \PYGdefault{n}{m}\PYGdefault{p}{,} \PYGdefault{n}{n}\PYGdefault{p}{,} \PYGdefault{n}{base}\PYGdefault{p}{,} \PYGdefault{l+m+mi}{1}\PYGdefault{p}{);}
+          \PYGdefault{p}{\PYGdefaultZcb{}}
+          \PYGdefault{k}{else} \PYGdefault{p}{\PYGdefaultZob{}}
+            \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}Não foi possível rodar o simplex dual com a PL dada.}\PYGdefault{l+s+se}{\PYGdefaultZbs{}n}\PYGdefault{l+s}{\PYGdefaultZdq{}}\PYGdefault{p}{);}
+          \PYGdefault{p}{\PYGdefaultZcb{}}
+        \PYGdefault{k}{break}\PYGdefault{p}{;}
+
+        \PYGdefault{k}{default}\PYGdefault{o}{:}
+        \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}Erro: Opção Inválida.}\PYGdefault{l+s+se}{\PYGdefaultZbs{}n}\PYGdefault{l+s}{\PYGdefaultZdq{}}\PYGdefault{p}{);}
+      \PYGdefault{p}{\PYGdefaultZcb{}}
+    \PYGdefault{k}{break}\PYGdefault{p}{;}
+
+    \PYGdefault{k}{default}\PYGdefault{o}{:}
+    \PYGdefault{n}{printf}\PYGdefault{p}{(}\PYGdefault{l+s}{\PYGdefaultZdq{}Erro: Opção Inválida.}\PYGdefault{l+s+se}{\PYGdefaultZbs{}n}\PYGdefault{l+s}{\PYGdefaultZdq{}}\PYGdefault{p}{);}
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{n}{fclose}\PYGdefault{p}{(}\PYGdefault{n}{input}\PYGdefault{p}{);}
+
+  \PYGdefault{n}{free}\PYGdefault{p}{(}\PYGdefault{n}{lp}\PYGdefault{p}{);}
+  \PYGdefault{n}{free}\PYGdefault{p}{(}\PYGdefault{n}{base}\PYGdefault{p}{);}
+  \PYGdefault{k}{if}\PYGdefault{p}{(}\PYGdefault{n}{auxiliar\PYGdefaultZus{}lp} \PYGdefault{o}{!=} \PYGdefault{n+nb}{NULL}\PYGdefault{p}{)} \PYGdefault{p}{\PYGdefaultZob{}} \PYGdefault{c+c1}{// If it was used to solve the LP, we need to free it}
+    \PYGdefault{n}{free}\PYGdefault{p}{(}\PYGdefault{n}{auxiliar\PYGdefaultZus{}lp}\PYGdefault{p}{);} 
+  \PYGdefault{p}{\PYGdefaultZcb{}}
+
+  \PYGdefault{k}{return} \PYGdefault{l+m+mi}{0}\PYGdefault{p}{;}
+\PYGdefault{p}{\PYGdefaultZcb{}}
+\end{Verbatim}
